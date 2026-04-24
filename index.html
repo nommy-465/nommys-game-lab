@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NOMMY'S GAME LAB — AI×老クリエイターの実験場</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&family=Noto+Sans+JP:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+
+/* ════════════════════════════════════════
+   RESET & VARIABLES
+════════════════════════════════════════ */
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+:root {
+  --sky-deep:    #0d0826;
+  --sky-purple:  #3d1060;
+  --sky-magenta: #c2185b;
+  --sky-coral:   #ff5722;
+  --sky-gold:    #ffca28;
+  --neon-pink:   #ff4081;
+  --neon-teal:   #1de9b6;
+  --neon-yellow: #ffea00;
+  --neon-blue:   #40c4ff;
+  --neon-orange: #ff6e40;
+  --block-coral: #ff6b6b;
+  --block-sky:   #74b9ff;
+  --block-mint:  #55efc4;
+  --block-peach: #fdcb6e;
+  --block-lav:   #a29bfe;
+  --bg:          #0a0618;
+  --card:        #100820;
+  --text:        #fff5f0;
+  --dim:         rgba(255,245,240,0.62);
+}
+html { scroll-behavior:smooth; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Noto Sans JP', sans-serif;
+  font-weight: 300;
+  overflow-x: hidden;
+  line-height: 1.8;
+}
+body::before {
+  content:''; position:fixed; inset:0; z-index:0; pointer-events:none;
+  background-image:
+    linear-gradient(rgba(255,107,107,0.04) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,107,107,0.04) 1px,transparent 1px);
+  background-size:32px 32px;
+}
+body::after {
+  content:''; position:fixed; inset:0; z-index:999; pointer-events:none;
+  background: repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.13) 2px,rgba(0,0,0,0.13) 4px);
+}
+
+/* ════════════════════════════════════════
+   ANIMATIONS
+════════════════════════════════════════ */
+@keyframes blink    { 0%,49%{opacity:1} 50%,100%{opacity:0} }
+@keyframes float    { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-7px)} }
+@keyframes marquee  { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+@keyframes scanDown { from{transform:translateY(-100%)} to{transform:translateY(100vh)} }
+@keyframes sunPulse { 0%,100%{box-shadow:0 0 40px 10px rgba(255,202,40,.5)} 50%{box-shadow:0 0 60px 20px rgba(255,107,67,.6)} }
+@keyframes palmSway { 0%,100%{transform:rotate(-2deg)} 50%{transform:rotate(2deg) translateY(-3px)} }
+@keyframes cityGlow {
+  0%  {text-shadow:2px 0 var(--neon-pink),-2px 0 var(--neon-teal),0 0 30px var(--sky-gold)}
+  33% {text-shadow:-2px 0 var(--neon-teal),2px 0 var(--neon-orange),0 0 30px var(--neon-pink)}
+  66% {text-shadow:2px 0 var(--neon-orange),-2px 0 var(--block-lav),0 0 30px var(--neon-teal)}
+  100%{text-shadow:2px 0 var(--neon-pink),-2px 0 var(--neon-teal),0 0 30px var(--sky-gold)}
+}
+@keyframes starTwinkle { 0%,100%{opacity:.5} 50%{opacity:1} }
+@keyframes spaceFloat  { 0%,100%{transform:translate(0,0)} 50%{transform:translate(3px,-4px)} }
+@keyframes waveAnim    { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+@keyframes polyRotate  { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+@keyframes laserPulse  { 0%,100%{opacity:.3;height:2px} 50%{opacity:1;height:3px} }
+@keyframes accordionOpen {
+  from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)}
+}
+
+/* ════════════════════════════════════════
+   SCAN BEAM
+════════════════════════════════════════ */
+.scan-beam {
+  position:fixed; top:0; left:0; right:0; height:140px; z-index:998; pointer-events:none;
+  background:linear-gradient(transparent,rgba(29,233,182,.02),transparent);
+  animation:scanDown 12s linear infinite;
+}
+
+/* ════════════════════════════════════════
+   ━━ HERO BANNER ━━
+════════════════════════════════════════ */
+header { position:relative; z-index:1; overflow:hidden; }
+
+.header-sky {
+  /* ── Hero Banner Image ── */
+  background:
+    linear-gradient(180deg,
+      rgba(10,4,30,0.72) 0%,
+      rgba(10,4,30,0.35) 30%,
+      rgba(10,4,30,0.15) 55%,
+      rgba(10,4,30,0.55) 85%,
+      rgba(10,4,30,0.88) 100%
+    ),
+    url('hero-banner.jpg') center center / cover no-repeat;
+  min-height: 380px;
+  padding: 52px 20px 0;
+  text-align: center;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+}
+/* fallback: gradient only (before image loads) */
+.header-sky::before {
+  content:'';
+  position:absolute; inset:0; z-index:0;
+  background:linear-gradient(180deg,
+    rgba(13,8,38,0.0) 0%, rgba(13,8,38,0.0) 100%
+  );
+  pointer-events:none;
+}
+.sun-disc { display:none; }
+.header-badge {
+  display:inline-block; position:relative; z-index:2;
+  font-family:'Press Start 2P',monospace; font-size:.5rem;
+  color:var(--sky-deep); background:var(--sky-gold);
+  padding:6px 16px; margin-bottom:16px; letter-spacing:.12em;
+  animation:blink 1.2s step-end infinite;
+}
+.site-title {
+  font-family:'Press Start 2P',monospace;
+  font-size:clamp(1.3rem,4.5vw,2.8rem);
+  line-height:1.5; letter-spacing:.04em; margin-bottom:10px;
+  animation:cityGlow 5s linear infinite; position:relative; z-index:2;
+}
+.site-sub {
+  font-family:'VT323',monospace; font-size:clamp(1.1rem,3vw,1.6rem);
+  color:var(--sky-gold); letter-spacing:.3em; opacity:.9; margin-bottom:24px;
+  position:relative; z-index:2;
+}
+
+/* Skyline — 画像使用時は非表示 */
+.skyline-wrap { display:none; }
+.palm-left, .palm-right { display:none; }
+
+/* Reflection strip */
+.reflection-strip {
+  height:24px;
+  background:linear-gradient(90deg,
+    #ff4081 0%,#ff6e40 16%,#ffea00 33%,
+    #1de9b6 50%,#40c4ff 66%,#a29bfe 83%,#ff4081 100%
+  );
+  background-size:200% 100%;
+  animation:marquee 4s linear infinite;
+}
+/* Color bands */
+.color-bands { display:flex; height:9px; }
+.color-bands span { flex:1; }
+
+/* Ticker */
+.ticker-wrap {
+  overflow:hidden; background:var(--sky-deep);
+  border-top:2px solid var(--neon-pink); border-bottom:2px solid var(--neon-pink);
+  padding:8px 0;
+}
+.ticker {
+  display:inline-block; white-space:nowrap;
+  font-family:'Press Start 2P',monospace; font-size:.56rem;
+  color:var(--neon-pink);
+  animation:marquee 32s linear infinite;
+}
+
+/* ─────────────────────────────────────
+   CREATOR SUB-PANEL (attached to hero)
+───────────────────────────────────── */
+.creator-subpanel {
+  background:linear-gradient(90deg,rgba(255,107,107,.1) 0%,rgba(29,233,182,.06) 50%,rgba(162,155,254,.08) 100%);
+  border-bottom:1px solid rgba(255,107,107,.2);
+  padding:18px 32px;
+  display:flex;
+  align-items:center;
+  gap:20px;
+  flex-wrap:wrap;
+  position:relative; z-index:1;
+}
+.creator-subpanel::before {
+  content:'// ABOUT THE CREATOR';
+  position:absolute; top:10px; right:20px;
+  font-family:'Press Start 2P',monospace; font-size:.4rem;
+  color:rgba(253,203,110,.3); letter-spacing:.15em;
+}
+.sub-avatar {
+  width:52px; height:52px;
+  background:linear-gradient(135deg,var(--block-coral),var(--block-lav));
+  border-radius:3px; display:grid; place-items:center; font-size:1.9rem;
+  flex-shrink:0; box-shadow:0 0 14px rgba(255,107,107,.3);
+  animation:float 3.5s ease-in-out infinite;
+}
+.sub-name {
+  font-family:'Press Start 2P',monospace; font-size:.62rem;
+  color:var(--neon-teal); text-shadow:0 0 10px var(--neon-teal);
+  margin-bottom:4px;
+}
+.sub-desc {
+  font-size:.95rem; color:var(--dim); line-height:1.85;
+  max-width:680px;
+}
+.sub-chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+.sub-chip {
+  font-family:'VT323',monospace; font-size:1.08rem;
+  padding:3px 12px; border-radius:2px; letter-spacing:.08em;
+}
+.sc-coral  { background:rgba(255,107,107,.12); border:1px solid var(--block-coral); color:var(--block-coral); }
+.sc-teal   { background:rgba(29,233,182,.08);  border:1px solid var(--neon-teal);   color:var(--neon-teal); }
+.sc-peach  { background:rgba(253,203,110,.08); border:1px solid var(--block-peach); color:var(--block-peach); }
+.sc-sky    { background:rgba(116,185,255,.08); border:1px solid var(--block-sky);   color:var(--block-sky); }
+
+/* ════════════════════════════════════════
+   MAIN / SELECT STAGE
+════════════════════════════════════════ */
+main {
+  position:relative; z-index:1;
+  max-width:1060px; margin:0 auto; padding:0 20px 80px;
+}
+.sec-head {
+  display:flex; align-items:center; gap:16px; margin:56px 0 32px;
+}
+.sec-head::before,.sec-head::after {
+  content:''; flex:1; height:2px;
+}
+.sec-head::before { background:linear-gradient(90deg,transparent,var(--neon-orange)); }
+.sec-head::after  { background:linear-gradient(90deg,var(--neon-orange),transparent); }
+.sec-head span {
+  font-family:'Press Start 2P',monospace; font-size:.65rem;
+  color:var(--neon-orange); letter-spacing:.2em; white-space:nowrap;
+  text-shadow:0 0 12px var(--neon-orange);
+}
+
+/* ════════════════════════════════════════
+   GAME CARD — Main large layout
+════════════════════════════════════════ */
+.game-card {
+  background:var(--card);
+  border-radius:6px;
+  margin-bottom:52px;
+  overflow:hidden;
+  transition:transform .3s,box-shadow .3s;
+  border:1px solid rgba(255,255,255,.06);
+}
+.game-card:hover { transform:translateY(-3px); box-shadow:0 20px 60px rgba(0,0,0,.5); }
+
+/* Top color stripe */
+.gc-stripe { height:5px; width:100%; }
+.gs-01 { background:linear-gradient(90deg,var(--block-coral),var(--neon-pink),var(--block-lav)); }
+.gs-02 { background:linear-gradient(90deg,var(--neon-teal),var(--block-sky),var(--block-lav)); }
+.gs-03 { background:linear-gradient(90deg,var(--sky-gold),var(--block-coral),var(--neon-orange)); }
+
+/* ── MAIN STAGE: Title + Preview + Play ── */
+.gc-stage {
+  display:grid;
+  grid-template-columns:1fr 380px;
+  gap:0;
+  min-height:280px;
+}
+@media(max-width:720px){ .gc-stage{grid-template-columns:1fr;} }
+
+/* Left: Title & Play */
+.gc-left {
+  padding:32px 36px;
+  display:flex; flex-direction:column; justify-content:space-between;
+  border-right:1px solid rgba(255,255,255,.06);
+  background:linear-gradient(135deg,rgba(255,107,107,.06) 0%,transparent 70%);
+}
+.gc-num {
+  font-family:'Press Start 2P',monospace; font-size:.46rem;
+  color:rgba(253,203,110,.4); letter-spacing:.2em; margin-bottom:10px;
+}
+.gc-title-row { display:flex; align-items:center; gap:16px; margin-bottom:8px; }
+.gc-emoji { font-size:2.6rem; animation:float 3s ease-in-out infinite; }
+.gc-title {
+  font-family:'Press Start 2P',monospace;
+  font-size:clamp(1.1rem,3vw,1.8rem);
+  letter-spacing:.04em; line-height:1.3;
+}
+.gt-01 { color:var(--block-coral);  text-shadow:0 0 20px rgba(255,107,107,.6); }
+.gt-02 { color:var(--neon-teal);    text-shadow:0 0 20px rgba(29,233,182,.6); }
+.gt-03 { color:var(--sky-gold);     text-shadow:0 0 20px rgba(255,202,40,.6); }
+
+.gc-tags { display:flex; flex-wrap:wrap; gap:6px; margin:12px 0 28px; }
+.gc-tag {
+  font-family:'VT323',monospace; font-size:1.1rem;
+  padding:3px 12px; border-radius:2px; letter-spacing:.06em;
+}
+.tt-01 { border:1px solid rgba(255,107,107,.5); color:var(--block-coral); }
+.tt-02 { border:1px solid rgba(29,233,182,.5);  color:var(--neon-teal); }
+.tt-03 { border:1px solid rgba(255,202,40,.5);  color:var(--sky-gold); }
+
+.play-btn {
+  display:inline-flex; align-items:center; gap:10px;
+  text-decoration:none;
+  font-family:'Press Start 2P',monospace; font-size:.65rem;
+  color:#000; padding:16px 28px; border-radius:3px;
+  letter-spacing:.12em; transition:all .2s; white-space:nowrap;
+  align-self:flex-start;
+}
+.play-btn::before { content:'▶ '; font-size:.75rem; }
+.pb-01 { background:var(--block-coral); box-shadow:0 0 20px rgba(255,107,107,.5),0 4px 12px rgba(0,0,0,.4); }
+.pb-02 { background:var(--neon-teal);   box-shadow:0 0 20px rgba(29,233,182,.5),0 4px 12px rgba(0,0,0,.4); }
+.pb-03 { background:var(--sky-gold);    box-shadow:0 0 20px rgba(255,202,40,.5),0 4px 12px rgba(0,0,0,.4); }
+.play-btn:hover { transform:translateY(-3px) scale(1.03); filter:brightness(1.12); }
+
+/* ── Right: Screenshot Preview ── */
+.gc-preview {
+  position:relative; overflow:hidden;
+  background:var(--sky-deep);
+  min-height:260px;
+}
+.gc-preview img {
+  width:100%; height:100%;
+  object-fit:cover; object-position:center top;
+  display:block;
+  min-height:260px;
+  filter:brightness(.95) saturate(1.05);
+}
+.gc-preview-inner {
+  position:absolute; inset:0;
+  display:flex; align-items:center; justify-content:center;
+}
+
+/* ── CSS Screenshot: TAG-BM III (Space Shooter) ── */
+.preview-space {
+  width:100%; height:100%;
+  background:radial-gradient(ellipse at 50% 50%,#001428 0%,#000208 100%);
+  position:relative; overflow:hidden;
+}
+.preview-space .star {
+  position:absolute; border-radius:50%;
+  background:#fff; animation:starTwinkle 2s ease-in-out infinite;
+}
+.preview-space .ship {
+  position:absolute; bottom:25%; left:50%; transform:translateX(-50%);
+  width:0; height:0;
+  border-left:14px solid transparent;
+  border-right:14px solid transparent;
+  border-bottom:36px solid #00ffff;
+  filter:drop-shadow(0 0 8px #00ffff);
+  animation:spaceFloat 3s ease-in-out infinite;
+}
+.preview-space .ship::after {
+  content:''; position:absolute;
+  top:8px; left:-6px;
+  border-left:6px solid transparent; border-right:6px solid transparent;
+  border-bottom:16px solid rgba(0,100,255,.7);
+}
+.preview-space .laser {
+  position:absolute; left:50%; transform:translateX(-50%);
+  width:3px; background:linear-gradient(180deg,transparent,#00ffff,transparent);
+  animation:laserPulse 1s ease-in-out infinite;
+}
+.preview-space .enemy {
+  position:absolute;
+  width:22px; height:16px;
+  background:#ff006e;
+  border-radius:3px;
+  box-shadow:0 0 8px #ff006e;
+}
+.preview-space .grid-line {
+  position:absolute; left:0; right:0; height:1px;
+  background:rgba(0,255,255,.06);
+}
+.preview-space .energy-bar {
+  position:absolute; top:14px; left:14px;
+  width:70px; height:6px;
+  background:rgba(0,255,255,.15);
+  border:1px solid rgba(0,255,255,.4);
+  border-radius:2px;
+}
+.preview-space .energy-fill {
+  width:65%; height:100%;
+  background:linear-gradient(90deg,#00ffff,#0088ff);
+  border-radius:2px; box-shadow:0 0 6px #00ffff;
+}
+.preview-space .score-text {
+  position:absolute; top:12px; right:14px;
+  font-family:'Press Start 2P',monospace; font-size:.38rem;
+  color:#00ffff; text-shadow:0 0 6px #00ffff;
+}
+
+/* ── CSS Screenshot: POLYGON STAR (3D Space) ── */
+.preview-poly {
+  width:100%; height:100%;
+  background:radial-gradient(ellipse at 50% 30%,#0a0730 0%,#070717 100%);
+  position:relative; overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+}
+.poly-star {
+  position:absolute;
+  width:60px; height:60px;
+  clip-path:polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);
+  animation:polyRotate 8s linear infinite;
+}
+.poly-star-sm {
+  width:36px; height:36px;
+  clip-path:polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);
+  position:absolute;
+}
+.preview-poly .p-star { background:rgba(255,255,255,.08); border:1px solid rgba(180,140,255,.5); }
+.preview-poly .p-star-a { background:rgba(100,160,255,.12); border:1px solid rgba(100,200,255,.5); }
+.preview-poly .p-star-b { background:rgba(255,100,180,.1);  border:1px solid rgba(255,100,180,.4); }
+.orbit-ring {
+  position:absolute; border-radius:50%;
+  border:1px solid rgba(100,200,255,.15);
+}
+.preview-poly .score-text {
+  position:absolute; top:12px; left:14px;
+  font-family:'Press Start 2P',monospace; font-size:.38rem;
+  color:#aabbff; text-shadow:0 0 6px #aabbff;
+}
+.preview-poly .lives-text {
+  position:absolute; top:12px; right:14px;
+  font-family:'Press Start 2P',monospace; font-size:.38rem;
+  color:#fff; text-shadow:0 0 4px #fff;
+}
+
+/* ── CSS Screenshot: BAYWATCH (Ocean) ── */
+.preview-bay {
+  width:100%; height:100%;
+  background:linear-gradient(180deg,#0a4a7a 0%,#083d68 100%);
+  position:relative; overflow:hidden;
+}
+.bay-wave {
+  position:absolute; left:0;
+  height:3px; width:200%;
+  border-radius:50%;
+  animation:waveAnim 3s linear infinite;
+  opacity:.45;
+}
+.bay-jet {
+  position:absolute; bottom:35%; left:50%; transform:translateX(-50%);
+  font-size:1.8rem;
+  animation:float 2s ease-in-out infinite;
+  filter:drop-shadow(0 4px 8px rgba(0,0,0,.5));
+}
+.bay-victim {
+  position:absolute; font-size:1rem;
+  animation:float 2.5s ease-in-out infinite;
+}
+.bay-ripple {
+  position:absolute; border-radius:50%;
+  border:1px solid rgba(255,255,255,.3);
+  animation:starTwinkle 2s ease-in-out infinite;
+}
+.bay-ui-top {
+  position:absolute; top:12px; left:14px;
+  font-family:'Press Start 2P',monospace; font-size:.38rem;
+  color:#fff; text-shadow:0 0 4px rgba(0,0,0,.8); line-height:1.8;
+}
+
+/* ════════════════════════════════════════
+   ACCORDION
+════════════════════════════════════════ */
+/* ── CONTROLS STRIP ── */
+.gc-controls {
+  border-top: 1px solid rgba(255,255,255,.07);
+  border-bottom: 1px solid rgba(255,255,255,.07);
+  background: rgba(0,0,0,.25);
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 20px;
+}
+.ctrl-label {
+  font-family: 'Press Start 2P', monospace;
+  font-size: .52rem;
+  color: rgba(255,245,240,.3);
+  letter-spacing: .15em;
+  margin-right: 4px;
+  white-space: nowrap;
+}
+.ctrl-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+}
+.ctrl-desc {
+  font-family: 'VT323', monospace;
+  font-size: 1.2rem;
+  letter-spacing: .06em;
+}
+kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Press Start 2P', monospace;
+  font-size: .48rem;
+  min-width: 30px;
+  height: 26px;
+  padding: 0 6px;
+  border-radius: 3px;
+  border-bottom: 2px solid;
+  line-height: 1;
+  white-space: nowrap;
+}
+.k-01 { background:rgba(255,107,107,.18); border-color:rgba(255,107,107,.5); color:var(--block-coral); }
+.k-02 { background:rgba(29,233,182,.12);  border-color:rgba(29,233,182,.5);  color:var(--neon-teal); }
+.k-03 { background:rgba(255,202,40,.12);  border-color:rgba(255,202,40,.5);  color:var(--sky-gold); }
+
+.accordion-wrap {
+  border-top: 1px solid rgba(255,255,255,.07);
+}
+.accordion-item {
+  border-bottom:1px solid rgba(255,255,255,.05);
+}
+.accordion-btn {
+  width:100%; background:none; border:none; cursor:pointer;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:18px 28px;
+  font-family:'Press Start 2P',monospace; font-size:1.0rem;
+  letter-spacing:.14em;
+  transition:background .2s;
+  text-align:left;
+}
+.accordion-btn:hover { background:rgba(255,255,255,.04); }
+.ab-01 { color:var(--block-coral); }
+.ab-02 { color:var(--neon-teal); }
+.ab-03 { color:var(--sky-gold); }
+
+.accordion-arrow {
+  width:20px; height:20px; flex-shrink:0;
+  display:grid; place-items:center;
+  transition:transform .35s cubic-bezier(.4,0,.2,1);
+  font-size:.7rem;
+}
+.accordion-btn[aria-expanded="true"] .accordion-arrow { transform:rotate(180deg); }
+
+.accordion-body {
+  overflow:hidden;
+  max-height:0;
+  transition:max-height .4s cubic-bezier(.4,0,.2,1);
+}
+.accordion-body.open {
+  max-height:900px;
+}
+.accordion-inner {
+  padding:20px 28px 24px;
+  animation:accordionOpen .3s ease;
+}
+
+/* Game description inner */
+.game-desc-inner {
+  font-size:.97rem; color:var(--dim); line-height:2.0;
+}
+
+/* Dialog box */
+.dialog-box {
+  border-radius:4px; padding:18px 20px; position:relative;
+}
+.db-01 { background:rgba(8,0,15,.85); border:2px solid var(--block-coral); box-shadow:0 0 20px rgba(255,107,107,.1); }
+.db-02 { background:rgba(8,0,15,.85); border:2px solid var(--neon-teal);   box-shadow:0 0 20px rgba(29,233,182,.1); }
+.db-03 { background:rgba(8,0,15,.85); border:2px solid var(--sky-gold);    box-shadow:0 0 20px rgba(255,202,40,.1); }
+.dialog-speaker {
+  font-family:'VT323',monospace; font-size:1.3rem;
+  margin-bottom:8px; letter-spacing:.1em;
+}
+.ds-01{color:var(--block-coral);} .ds-02{color:var(--neon-teal);} .ds-03{color:var(--sky-gold);}
+.dialog-text { font-size:.95rem; color:rgba(255,245,240,.82); line-height:2.1; }
+.dialog-cursor {
+  display:inline-block; width:9px; height:13px;
+  margin-left:3px; vertical-align:middle;
+  animation:blink .8s step-end infinite;
+}
+.dc-01{background:var(--block-coral);} .dc-02{background:var(--neon-teal);} .dc-03{background:var(--sky-gold);}
+
+/* ════════════════════════════════════════
+   COMING SOON
+════════════════════════════════════════ */
+.coming-soon {
+  border:2px dashed rgba(255,107,107,.25); border-radius:6px;
+  padding:48px 28px; text-align:center;
+  background:rgba(255,107,107,.03); position:relative; overflow:hidden;
+}
+.coming-soon::before { content:'🌴'; position:absolute; left:20px; bottom:14px; font-size:1.8rem; opacity:.12; }
+.coming-soon::after  { content:'🌴'; position:absolute; right:20px; bottom:14px; font-size:1.8rem; opacity:.12; }
+
+/* ════════════════════════════════════════
+   FOOTER
+════════════════════════════════════════ */
+footer { position:relative; z-index:1; overflow:hidden; }
+.footer-grid {
+  height:90px;
+  background:
+    linear-gradient(transparent 0%,rgba(255,107,107,.07) 100%),
+    repeating-linear-gradient(90deg,transparent,transparent calc(10% - 1px),rgba(255,107,107,.22) calc(10% - 1px),rgba(255,107,107,.22) 10%),
+    repeating-linear-gradient(180deg,rgba(255,107,107,.22) 0px,rgba(255,107,107,.22) 1px,transparent 1px,transparent 20px);
+  background-color:var(--sky-deep);
+  border-top:2px solid var(--neon-pink);
+}
+.footer-inner {
+  background:var(--sky-deep); text-align:center;
+  padding:28px 20px 36px;
+  border-top:1px solid rgba(255,65,129,.25);
+}
+.footer-logo {
+  font-family:'Press Start 2P',monospace; font-size:.56rem;
+  margin-bottom:12px; letter-spacing:.2em;
+  background:linear-gradient(90deg,var(--block-coral),var(--block-peach),var(--neon-teal));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+  filter:drop-shadow(0 0 8px rgba(255,107,107,.4));
+}
+footer p { font-family:'VT323',monospace; font-size:1rem; color:rgba(255,245,240,.28); letter-spacing:.1em; margin-bottom:4px; }
+.insert-coin {
+  font-family:'Press Start 2P',monospace; font-size:.5rem;
+  color:var(--sky-gold); animation:blink 1s step-end infinite;
+  margin-top:20px; letter-spacing:.15em; text-shadow:0 0 10px var(--sky-gold);
+}
+
+/* ════════════════════════════════════════
+   RESPONSIVE
+════════════════════════════════════════ */
+@media(max-width:720px){
+  .gc-stage { grid-template-columns:1fr; }
+  .gc-preview { min-height:200px; }
+  .gc-left { border-right:none; border-bottom:1px solid rgba(255,255,255,.06); }
+  .creator-subpanel { padding:16px 20px; }
+  .creator-subpanel::before { display:none; }
+}
+</style>
+</head>
+<body>
+
+<div class="scan-beam"></div>
+
+<!-- ═══════════════════════════════════════
+     HERO BANNER
+════════════════════════════════════════ -->
+<header>
+  <div class="header-sky">
+    <div class="header-badge">★ NOW LOADING ★</div>
+    <h1 class="site-title">NOMMY'S<br>GAME LAB</h1>
+    <p class="site-sub">AI × OLD CREATOR × EXPERIMENT</p>
+  </div>
+
+  <div class="reflection-strip"></div>
+  <div class="color-bands">
+    <span style="background:#ff6b6b"></span><span style="background:#ff8e53"></span>
+    <span style="background:#fdcb6e"></span><span style="background:#55efc4"></span>
+    <span style="background:#74b9ff"></span><span style="background:#a29bfe"></span>
+    <span style="background:#fd79a8"></span><span style="background:#ff6b6b"></span>
+  </div>
+
+  <!-- ─── CREATOR SUB-PANEL ─── -->
+  <div class="creator-subpanel">
+    <div class="sub-avatar">👴</div>
+    <div>
+      <div class="sub-name">NOMMY</div>
+      <div class="sub-desc">
+        元ゲームを作る界隈の人、初老と言われても、まだ道の途中。
+        これから先のAI、ネット、バーチャルなどの電脳空間を生きるために、
+        昭和の感覚でAIに手伝ってもらいながら、ネットの海に飛び込んでいる。
+      </div>
+      <div class="sub-chips">
+        <span class="sub-chip sc-coral">元クリエイター</span>
+        <span class="sub-chip sc-teal">AI研究中</span>
+        <span class="sub-chip sc-peach">80年代育ち</span>
+        <span class="sub-chip sc-sky">Powered by Claude</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ticker -->
+  <div class="ticker-wrap">
+    <span class="ticker">
+      &nbsp;&nbsp;&nbsp;★ AIで作る・AIと遊ぶ・AIを学ぶ &nbsp;★&nbsp; 初老クリエイターの実験的ゲーム開発記 &nbsp;★&nbsp; POWERED BY CLAUDE &nbsp;★&nbsp; SINCE 2024 &nbsp;★&nbsp; ALL GAMES FREE TO PLAY &nbsp;★&nbsp; NEW GAMES COMING SOON &nbsp;★&nbsp; CITY POP FOREVER &nbsp;★&nbsp;
+      &nbsp;&nbsp;&nbsp;★ AIで作る・AIと遊ぶ・AIを学ぶ &nbsp;★&nbsp; 初老クリエイターの実験的ゲーム開発記 &nbsp;★&nbsp; POWERED BY CLAUDE &nbsp;★&nbsp; SINCE 2024 &nbsp;★&nbsp; ALL GAMES FREE TO PLAY &nbsp;★&nbsp; NEW GAMES COMING SOON &nbsp;★&nbsp; CITY POP FOREVER &nbsp;★&nbsp;
+    </span>
+  </div>
+</header>
+
+<!-- ═══════════════════════════════════════
+     MAIN
+════════════════════════════════════════ -->
+<main>
+  <div class="sec-head"><span>// SELECT STAGE</span></div>
+
+  <!-- ══════════ GAME 01: ALDEBARAN ══════════ -->
+  <div class="game-card">
+    <div class="gc-stripe gs-01"></div>
+    <div class="gc-stage">
+      <!-- Left -->
+      <div class="gc-left">
+        <div>
+          <div class="gc-num">STAGE — 01</div>
+          <div class="gc-title-row">
+            <span class="gc-emoji">🚀</span>
+            <span class="gc-title gt-01">ALDEBARAN</span>
+          </div>
+          <div class="gc-tags">
+            <span class="gc-tag tt-01">COLLECT</span>
+            <span class="gc-tag tt-01">CYBERPUNK</span>
+            <span class="gc-tag tt-01">ACTION</span>
+          </div>
+        </div>
+        <a class="play-btn pb-01" href="TAG_BM3.html" target="_blank">PLAY NOW</a>
+      </div>
+      <!-- Right: CSS Preview -->
+      <div class="gc-preview">
+        <img src="screenshot_tag_bm3_final.png" alt="ALDEBARAN screenshot">
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="gc-controls">
+      <span class="ctrl-label">CONTROLS</span>
+      <div class="ctrl-item">
+        <kbd class="k-01">↑</kbd><kbd class="k-01">↓</kbd><kbd class="k-01">←</kbd><kbd class="k-01">→</kbd>
+        <span class="ctrl-desc" style="color:var(--block-coral)">移動</span>
+      </div>
+      <div class="ctrl-item">
+        <kbd class="k-01">W</kbd><kbd class="k-01">A</kbd><kbd class="k-01">S</kbd><kbd class="k-01">D</kbd>
+        <span class="ctrl-desc" style="color:rgba(255,107,107,.6)">でも可</span>
+      </div>
+    </div>
+
+    <!-- Accordion -->
+    <div class="accordion-wrap">
+      <div class="accordion-item">
+        <button class="accordion-btn ab-01" onclick="toggleAccordion(this)" aria-expanded="false">
+          <span>▸ ゲーム内容</span>
+          <span class="accordion-arrow">▼</span>
+        </button>
+        <div class="accordion-body">
+          <div class="accordion-inner">
+            <p class="game-desc-inner">
+              サイバー空間を舞台にしたBOX集めゲーム。プレイヤーは限定された空間に散らばるBOXをすべて回収することが目標。エリア端の電流ラインや徘徊する敵ロボに当たるとダメージを受ける。エネルギーを補給しながら慎重に動き、BOXをすべて集めるとクリアゲートが開く。シンプルなルールの中に、判断力と立ち回りが問われる緊張感がある。
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="accordion-item">
+        <button class="accordion-btn ab-01" onclick="toggleAccordion(this)" aria-expanded="false">
+          <span>▸ 作者の言葉</span>
+          <span class="accordion-arrow">▼</span>
+        </button>
+        <div class="accordion-body">
+          <div class="accordion-inner">
+            <div class="dialog-box db-01">
+              <div class="dialog-speaker ds-01">▷ NOMMY :</div>
+              <p class="dialog-text">
+                簡単な操作入力を可能な限り少なくして、操作していくと、ゲームのルールとゴールがなんとなく理解していける。<br><br>
+                そんなのの一つの方向性として作ってみた。できているかな？
+              </p>
+              <span class="dialog-cursor dc-01"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div><!-- /game-card 01 -->
+
+  <!-- ══════════ GAME 02: POLYGON STAR ══════════ -->
+  <div class="game-card">
+    <div class="gc-stripe gs-02"></div>
+    <div class="gc-stage">
+      <div class="gc-left" style="background:linear-gradient(135deg,rgba(29,233,182,.06) 0%,transparent 70%)">
+        <div>
+          <div class="gc-num">STAGE — 02</div>
+          <div class="gc-title-row">
+            <span class="gc-emoji">⭐</span>
+            <span class="gc-title gt-02">STARSHIP TROOPERS</span>
+          </div>
+          <div class="gc-tags">
+            <span class="gc-tag tt-02">3D</span>
+            <span class="gc-tag tt-02">VECTOR</span>
+            <span class="gc-tag tt-02">THREE.JS</span>
+          </div>
+        </div>
+        <a class="play-btn pb-02" href="polygon_star_collision_fix.html" target="_blank">PLAY NOW</a>
+      </div>
+      <!-- CSS Preview: 3D Polygon -->
+      <div class="gc-preview">
+        <img src="screenshot_starship_final.png" alt="Starship Troopers screenshot">
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="gc-controls">
+      <span class="ctrl-label">CONTROLS</span>
+      <div class="ctrl-item">
+        <kbd class="k-02">↑</kbd><kbd class="k-02">↓</kbd>
+        <span class="ctrl-desc" style="color:var(--neon-teal)">前進 / 後退</span>
+      </div>
+      <div class="ctrl-item">
+        <kbd class="k-02">←</kbd><kbd class="k-02">→</kbd>
+        <span class="ctrl-desc" style="color:var(--neon-teal)">22.5° 回転</span>
+      </div>
+      <div class="ctrl-item">
+        <kbd class="k-02">SPACE</kbd>
+        <span class="ctrl-desc" style="color:var(--neon-teal)">レーザー発射</span>
+      </div>
+      <div class="ctrl-item">
+        <span class="ctrl-desc" style="color:rgba(29,233,182,.45);font-size:.85rem">※ 敵はレーザーで2体に分裂、時間経過で元サイズに戻る</span>
+      </div>
+    </div>
+
+    <div class="accordion-wrap">
+      <div class="accordion-item">
+        <button class="accordion-btn ab-02" onclick="toggleAccordion(this)" aria-expanded="false">
+          <span>▸ ゲーム内容</span>
+          <span class="accordion-arrow">▼</span>
+        </button>
+        <div class="accordion-body">
+          <div class="accordion-inner">
+            <p class="game-desc-inner">
+              宇宙の戦士として未知の惑星に降り立ち、物資の補給を行うミッション。惑星に生息する生物が行く手を阻むため、レーザー銃で排除しながら進む。ただし、この惑星は小さい。発射したレーザーは空間を一周し、気づけば自分自身に向かって戻ってくることがある。生物に触れるとゲームオーバー。しかし生物に、攻撃してくる意思はない。
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="accordion-item">
+        <button class="accordion-btn ab-02" onclick="toggleAccordion(this)" aria-expanded="false">
+          <span>▸ 作者の言葉</span>
+          <span class="accordion-arrow">▼</span>
+        </button>
+        <div class="accordion-body">
+          <div class="accordion-inner">
+            <div class="dialog-box db-02">
+              <div class="dialog-speaker ds-02">▷ NOMMY :</div>
+              <p class="dialog-text">
+                惑星の生物は、こちらに敵意がない。ただそこにいるだけだ。<br><br>
+                それでも邪魔だからと攻撃する。ゲームだから、ミッションだから、そういうルールだから。でも撃ったレーザーは小さな惑星を一周して、いつか自分に返ってくる。<br><br>
+                因果応報、なのかもしれない。プレイしながら、そんなことをぼんやり考えてほしかった。ゲームって、問いを投げかけることもできると思っている。
+              </p>
+              <span class="dialog-cursor dc-02"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div><!-- /game-card 02 -->
+
+  <!-- ══════════ GAME 03: BAYWATCH ══════════ -->
+  <div class="game-card">
+    <div class="gc-stripe gs-03"></div>
+    <div class="gc-stage">
+      <div class="gc-left" style="background:linear-gradient(135deg,rgba(255,202,40,.06) 0%,transparent 70%)">
+        <div>
+          <div class="gc-num">STAGE — 03</div>
+          <div class="gc-title-row">
+            <span class="gc-emoji">🌊</span>
+            <span class="gc-title gt-03">BAYWATCH</span>
+          </div>
+          <div class="gc-tags">
+            <span class="gc-tag tt-03">ACTION</span>
+            <span class="gc-tag tt-03">RESCUE</span>
+            <span class="gc-tag tt-03">OCEAN</span>
+          </div>
+        </div>
+        <a class="play-btn pb-03" href="baywatch.html" target="_blank">PLAY NOW</a>
+      </div>
+      <!-- CSS Preview: Ocean -->
+      <div class="gc-preview">
+        <img src="screenshot_baywatch.png" alt="BAYWATCH screenshot">
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="gc-controls">
+      <span class="ctrl-label">CONTROLS</span>
+      <div class="ctrl-item">
+        <kbd class="k-03">↑</kbd>
+        <span class="ctrl-desc" style="color:var(--sky-gold)">前進</span>
+      </div>
+      <div class="ctrl-item">
+        <kbd class="k-03">←</kbd><kbd class="k-03">→</kbd>
+        <span class="ctrl-desc" style="color:var(--sky-gold)">方向転換</span>
+      </div>
+      <div class="ctrl-item">
+        <kbd class="k-03">W</kbd><kbd class="k-03">A</kbd><kbd class="k-03">D</kbd>
+        <span class="ctrl-desc" style="color:rgba(255,202,40,.5)">でも可</span>
+      </div>
+    </div>
+
+    <div class="accordion-wrap">
+      <div class="accordion-item">
+        <button class="accordion-btn ab-03" onclick="toggleAccordion(this)" aria-expanded="false">
+          <span>▸ ゲーム内容</span>
+          <span class="accordion-arrow">▼</span>
+        </button>
+        <div class="accordion-body">
+          <div class="accordion-inner">
+            <p class="game-desc-inner">
+              物理演算による慣性と波の抵抗を体感しながら、溺れる人を救助するマリンアクション。プレイヤーが操るのはボート。救助に使うのはロープで引っ張る浮き輪だ。思い通りにならない船の動きと格闘しながら、制限時間内にすべての要救助者を助け出せ。「うまく近づけない」もどかしさこそが、このゲームの核心にある。
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="accordion-item">
+        <button class="accordion-btn ab-03" onclick="toggleAccordion(this)" aria-expanded="false">
+          <span>▸ 作者の言葉</span>
+          <span class="accordion-arrow">▼</span>
+        </button>
+        <div class="accordion-body">
+          <div class="accordion-inner">
+            <div class="dialog-box db-03">
+              <div class="dialog-speaker ds-03">▷ NOMMY :</div>
+              <p class="dialog-text">
+                物理演算は、作り手として本当に面白い。見た目の気持ちよさと、予測できない動きの面白さが同居している。昔からマリンスポーツが好きで、いつか海を題材にしたゲームを作りたいと思っていた。<br><br>
+                海で見るライフセーバーはヒーローそのものだ。あれはゲームになる、とずっと思っていた。実は昔、船舶免許を取ったことがある。その試験に人命救助の実技があって——これが難しかった。ボートをうまく救助者のそばに寄せられない。焦れば焦るほど遠ざかる。その「もどかしさ」を、物理演算でそのまま再現したのがこのゲームだ。<br><br>
+                ちなみに、ビキニの美少女とおっさんが同時に溺れていたらどちらを先に助けるか——そういうゲーム性も頭をよぎったが、それはまた別の話にしておこう。
+              </p>
+              <span class="dialog-cursor dc-03"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div><!-- /game-card 03 -->
+
+  <!-- COMING SOON -->
+  <div class="sec-head"><span>// COMING SOON</span></div>
+  <div class="coming-soon">
+    <div style="font-family:'Press Start 2P',monospace;font-size:.6rem;color:rgba(253,203,110,.35);margin-bottom:14px;letter-spacing:.2em">STAGE — ??</div>
+    <div style="font-size:2.5rem;margin-bottom:12px;opacity:.2">🎮</div>
+    <p style="font-family:'VT323',monospace;font-size:1.25rem;color:rgba(255,245,240,.28);letter-spacing:.12em">
+      次のゲームは思案中。AIと対話しながら、今日もコンセプトを練っている。
+    </p>
+  </div>
+</main>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-grid"></div>
+  <div class="color-bands" style="flex-direction:row-reverse">
+    <span style="background:#ff6b6b"></span><span style="background:#ff8e53"></span>
+    <span style="background:#fdcb6e"></span><span style="background:#55efc4"></span>
+    <span style="background:#74b9ff"></span><span style="background:#a29bfe"></span>
+    <span style="background:#fd79a8"></span><span style="background:#ff6b6b"></span>
+  </div>
+  <div class="footer-inner">
+    <div class="footer-logo">NOMMY'S GAME LAB</div>
+    <p>All games created with Claude (Anthropic AI)</p>
+    <p>© 2025 Nommy — Old Creator Never Dies</p>
+    <div class="insert-coin">★ INSERT COIN TO CONTINUE ★</div>
+  </div>
+</footer>
+
+<script>
+function toggleAccordion(btn) {
+  const body = btn.nextElementSibling;
+  const isOpen = btn.getAttribute('aria-expanded') === 'true';
+  // Close all in same card
+  const card = btn.closest('.accordion-wrap');
+  card.querySelectorAll('.accordion-btn').forEach(b => {
+    b.setAttribute('aria-expanded', 'false');
+    b.nextElementSibling.classList.remove('open');
+  });
+  // Open clicked if it was closed
+  if (!isOpen) {
+    btn.setAttribute('aria-expanded', 'true');
+    body.classList.add('open');
+  }
+}
+</script>
+</body>
+</html>

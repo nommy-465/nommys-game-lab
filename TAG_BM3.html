@@ -1,0 +1,1341 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TAG-BM III</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #000010; overflow: hidden; font-family: 'Courier New', monospace; }
+  #gameCanvas { display: block; width: 100vw; height: 100vh; }
+
+  #ui {
+    position: fixed; top: 0; left: 0; right: 0;
+    display: flex; justify-content: space-between; align-items: flex-start;
+    padding: 14px 20px; pointer-events: none; z-index: 10;
+  }
+  .panel {
+    background: rgba(0,20,40,0.85);
+    border: 1px solid #00ffff44;
+    border-radius: 4px;
+    padding: 8px 14px; color: #00ffff;
+    box-shadow: 0 0 12px #00ffff22, inset 0 0 8px #00ffff11;
+  }
+  .panel h3 { font-size: 10px; opacity: 0.6; letter-spacing: 2px; margin-bottom: 4px; text-transform: uppercase; }
+  .panel .val { font-size: 18px; font-weight: bold; color: #00ffff; text-shadow: 0 0 8px #00ffff; }
+  #energyBar {
+    width: 150px; height: 8px;
+    background: rgba(0,255,255,0.1);
+    border: 1px solid #00ffff44;
+    border-radius: 2px; overflow: hidden; margin-top: 6px;
+  }
+  #energyFill {
+    height: 100%; width: 100%;
+    background: linear-gradient(90deg, #00ffff, #0088ff);
+    border-radius: 2px; transition: width 0.1s;
+    box-shadow: 0 0 6px #00ffff;
+  }
+
+  #overlay {
+    position: fixed; inset: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: rgba(0,0,10,0.92);
+    z-index: 100; color: #fff;
+    background-image: repeating-linear-gradient(
+      0deg, transparent, transparent 30px, rgba(0,255,255,0.03) 30px, rgba(0,255,255,0.03) 31px
+    ), repeating-linear-gradient(
+      90deg, transparent, transparent 30px, rgba(0,255,255,0.03) 30px, rgba(0,255,255,0.03) 31px
+    );
+  }
+  #overlay h1 {
+    font-size: 52px; letter-spacing: 8px;
+    color: #00ffff; text-shadow: 0 0 30px #00ffff, 0 0 60px #0066ff;
+    margin-bottom: 6px; font-family: 'Courier New', monospace;
+  }
+  #overlay .subtitle {
+    font-size: 12px; letter-spacing: 4px; color: #0088ff;
+    text-shadow: 0 0 10px #0088ff; margin-bottom: 8px; opacity: 0.8;
+  }
+  #overlay .sub { font-size: 14px; opacity: 0.6; margin-bottom: 28px; color: #aaeeff; }
+  #overlay .msg { font-size: 16px; margin-bottom: 24px; color: #88ddff; text-align: center; line-height: 2; }
+  #overlay button {
+    background: transparent; color: #00ffff; border: 1px solid #00ffff;
+    padding: 12px 40px; font-size: 16px; border-radius: 2px;
+    cursor: pointer; font-weight: bold; pointer-events: all; letter-spacing: 4px;
+    transition: all 0.2s; font-family: 'Courier New', monospace;
+    box-shadow: 0 0 20px #00ffff44, inset 0 0 20px #00ffff11;
+    text-transform: uppercase;
+  }
+  #overlay button:hover {
+    background: #00ffff22; box-shadow: 0 0 30px #00ffff88, inset 0 0 20px #00ffff22;
+    text-shadow: 0 0 10px #00ffff;
+  }
+  #item-count .val { color: #00ffff; }
+
+  /* コンテナ取得ポップアップ */
+  #pickup-popup {
+    position: fixed;
+    pointer-events: none;
+    z-index: 50;
+    font-family: 'Courier New', monospace;
+    font-size: 22px;
+    font-weight: bold;
+    color: #00ffff;
+    text-shadow: 0 0 12px #00ffff, 0 0 24px #0088ff;
+    letter-spacing: 3px;
+    opacity: 0;
+    transition: opacity 0.15s;
+    transform: translate(-50%, -50%);
+    white-space: nowrap;
+  }
+  #controls-hint {
+    position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%);
+    color: rgba(0,255,255,0.35); font-size: 11px; pointer-events: none; z-index: 10;
+    letter-spacing: 2px;
+  }
+  /* scanline effect */
+  body::after {
+    content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 999;
+    background: repeating-linear-gradient(0deg, rgba(0,0,0,0.03) 0px, rgba(0,0,0,0.03) 1px, transparent 1px, transparent 2px);
+  }
+
+  #dpad {
+    position: fixed; bottom: 30px; left: 30px;
+    width: 120px; height: 120px; z-index: 20; display: none;
+  }
+  #dpad button {
+    position: absolute; width: 36px; height: 36px;
+    background: rgba(0,255,255,0.1); border: 1px solid rgba(0,255,255,0.4);
+    border-radius: 4px; color: #00ffff; font-size: 16px; cursor: pointer;
+    pointer-events: all; display: flex; align-items: center; justify-content: center;
+  }
+  #dpad #btn-up    { top: 0;   left: 42px; }
+  #dpad #btn-down  { bottom: 0; left: 42px; }
+  #dpad #btn-left  { top: 42px; left: 0; }
+  #dpad #btn-right { top: 42px; right: 0; }
+  @media (max-width: 768px) { #dpad { display: block; } }
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+
+<div id="ui">
+  <div class="panel" id="item-count">
+    <h3>► CONTAINERS</h3>
+    <div class="val" id="item-val">0 / 0</div>
+  </div>
+  <div class="panel">
+    <h3>► ENERGY</h3>
+    <div id="energyBar"><div id="energyFill"></div></div>
+  </div>
+</div>
+
+<div id="controls-hint">[ ARROW KEYS / WASD ] — MOVE UNIT</div>
+
+<div id="dpad">
+  <button id="btn-up">▲</button>
+  <button id="btn-down">▼</button>
+  <button id="btn-left">◀</button>
+  <button id="btn-right">▶</button>
+</div>
+
+<div id="pickup-popup"></div>
+
+<div id="overlay">
+  <h1>TAG-BM III</h1>
+  <div class="subtitle">TACTICAL ACQUISITION GAME</div>
+  <div class="sub">衛星軌道基地 — ORBITAL STATION DELTA-9</div>
+  <div class="msg" id="overlay-msg">
+    障害物ロボットを避けながら全コンテナを回収しゴールへ<br>
+    <span style="font-size:12px;opacity:0.6">COLLECT ALL CONTAINERS → REACH GOAL</span>
+  </div>
+  <button id="startBtn">[ INITIALIZE ]</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+'use strict';
+
+// ===== GLOBALS =====
+var keys = {}, mobileKeys = {};
+var gameState = 'title';
+var energy = 100, maxEnergy = 100;
+var totalItems = 0;
+var capturedItems = [], itemObjects = [], obstacles = [], energyItems = [];
+var scene, camera, renderer, clock;
+var playerGroup, playerBall;     // playerGroup = whole robot, playerBall = sphere body (for collision)
+var goalPlatform, startPlatform;
+var vel = { x: 0, y: 0, z: 0 };
+var ballRadius = 0.6;
+var sparks = []; // アクティブなスパークパーティクルのリスト
+var flyingContainers = []; // 吹き飛ばされたコンテナの物理状態
+var dangerLines = [];      // ステージ端の波線ラインオブジェクト群
+var camShake = 0;           // カメラシェイク残り時間
+var pickupPopupTimer = 0;   // 取得ポップアップ表示タイマー
+var edgeHitCooldown = 0;    // ステージ端衝突クールダウン
+var camShakeAmt = 0;        // シェイク強度
+var goalVortex = [];        // ゴールの渦パーティクル
+var goalVortexActive = false; // 全コンテナ取得後に有効化
+
+// Third-person camera
+var camYaw = Math.PI;
+var camDist = 14, camHeight = 7;
+
+// Params
+var friction = 0.97;
+var speed = 120;
+var maxSpeed = 30;
+var gravity = -20;
+
+// ===== INIT =====
+init();
+
+function init() {
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x000510);
+  scene.fog = new THREE.FogExp2(0x000510, 0.018);
+
+  camera = new THREE.PerspectiveCamera(65, innerWidth / innerHeight, 0.1, 300);
+  camera.position.set(0, 10, 16);
+
+  renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('gameCanvas'), antialias: true });
+  renderer.setSize(innerWidth, innerHeight);
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.shadowMap.enabled = true;
+
+  // Cyber lighting
+  var ambient = new THREE.AmbientLight(0x001122, 1.2);
+  scene.add(ambient);
+
+  var keyLight = new THREE.DirectionalLight(0x00aaff, 0.8);
+  keyLight.position.set(-10, 20, 10);
+  keyLight.castShadow = true;
+  keyLight.shadow.mapSize.set(2048, 2048);
+  keyLight.shadow.camera.left = keyLight.shadow.camera.bottom = -40;
+  keyLight.shadow.camera.right = keyLight.shadow.camera.top = 40;
+  scene.add(keyLight);
+
+  var fillLight = new THREE.DirectionalLight(0xff6600, 0.15);
+  fillLight.position.set(10, 5, -10);
+  scene.add(fillLight);
+
+  // Stars
+  buildStarfield();
+
+  clock = new THREE.Clock();
+  setupInput();
+  buildStage();
+  animate();
+
+  window.addEventListener('resize', function() {
+    camera.aspect = innerWidth / innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth, innerHeight);
+  });
+  document.getElementById('startBtn').addEventListener('click', startGame);
+}
+
+// ===== STARFIELD =====
+function buildStarfield() {
+  var geo = new THREE.BufferGeometry();
+  var count = 1200;
+  var pos = new Float32Array(count * 3);
+  for (var i = 0; i < count * 3; i++) pos[i] = (Math.random() - 0.5) * 400;
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  var mat = new THREE.PointsMaterial({ color: 0x88ccff, size: 0.3, sizeAttenuation: true });
+  scene.add(new THREE.Points(geo, mat));
+}
+
+// ===== STAGE =====
+function buildStage() {
+  // Clear
+  var toRemove = scene.children.filter(function(c) { return c.userData.isStageObj; });
+  toRemove.forEach(function(c) { scene.remove(c); });
+  itemObjects = []; capturedItems = []; obstacles = []; energyItems = [];
+  // ゴール渦クリア
+  goalVortex.forEach(function(p) { scene.remove(p.mesh); });
+  goalVortex = []; goalVortexActive = false;
+  playerArmL = null; playerArmR = null; playerSphere = null;
+  flyingContainers = [];
+  dangerLines = [];
+
+  var CYAN   = 0x00ffff;
+  var BLUE   = 0x0044ff;
+  var ORANGE = 0xff6600;
+
+  // ── GRID FLOOR (wireframe) ──
+  var gridSize = 30, divisions = 20;
+  var gridHelper = new THREE.GridHelper(gridSize, divisions, 0x003355, 0x002244);
+  gridHelper.position.y = 0;
+  gridHelper.userData.isStageObj = true;
+  scene.add(gridHelper);
+
+  // ── DANGER EDGE LINES (波線) ──
+  // ステージ境界: x:±16, z:±13、波線はアニメで動的更新
+  // 各辺を細かい点で構成したBufferGeometry Lineとして生成
+  var dangerMat = new THREE.LineBasicMaterial({
+    color: 0xffee00,
+    transparent: true,
+    opacity: 0.0,   // 初期は透明、距離で変化
+  });
+
+  function makeDangerLine(axis, fixedVal, from, to, segments) {
+    var pts = new Float32Array((segments + 1) * 3);
+    for (var i = 0; i <= segments; i++) {
+      var u = from + (to - from) * (i / segments);
+      if (axis === 'x') {
+        pts[i*3+0] = u;
+        pts[i*3+1] = 0.08;
+        pts[i*3+2] = fixedVal;
+      } else {
+        pts[i*3+0] = fixedVal;
+        pts[i*3+1] = 0.08;
+        pts[i*3+2] = u;
+      }
+    }
+    var geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pts, 3));
+    var mat = dangerMat.clone();
+    var line = new THREE.Line(geo, mat);
+    line.userData.isStageObj = true;
+    line.userData.isDangerLine = true;
+    line.userData.axis = axis;
+    line.userData.fixedVal = fixedVal;
+    line.userData.from = from;
+    line.userData.to = to;
+    line.userData.segments = segments;
+    scene.add(line);
+    dangerLines.push(line);
+  }
+
+  var SEG = 320;
+  // 4辺: 上下(z方向固定), 左右(x方向固定)
+  makeDangerLine('x',  13, -16, 16, SEG); // 手前
+  makeDangerLine('x', -13, -16, 16, SEG); // 奥
+  makeDangerLine('z',  16, -13, 13, SEG); // 右
+  makeDangerLine('z', -16, -13, 13, SEG); // 左
+
+  // Main platform — transparent wireframe box
+  var platGeo = new THREE.BoxGeometry(30, 0.15, 24);
+  var platMat = new THREE.MeshLambertMaterial({
+    color: 0x001122, transparent: true, opacity: 0.55,
+    wireframe: false
+  });
+  var plat = new THREE.Mesh(platGeo, platMat);
+  plat.position.set(0, -0.08, 0);
+  plat.receiveShadow = true;
+  plat.userData.isStageObj = true;
+  scene.add(plat);
+
+  // Platform wireframe overlay
+  var platWire = new THREE.Mesh(platGeo.clone(), new THREE.MeshBasicMaterial({ color: 0x003366, wireframe: true }));
+  platWire.position.copy(plat.position);
+  platWire.userData.isStageObj = true;
+  scene.add(platWire);
+
+  // Edge glow strips
+  addGlowStrip(-15, 0.01,  0, 30, 0.05, 24, CYAN, 0.3);
+
+  // ── START ZONE ──
+  var startGeo = new THREE.BoxGeometry(4, 0.12, 4);
+  var startMat = new THREE.MeshLambertMaterial({ color: 0x002233, transparent: true, opacity: 0.9 });
+  startPlatform = new THREE.Mesh(startGeo, startMat);
+  startPlatform.position.set(-11, 0.06, 0);
+  startPlatform.receiveShadow = true;
+  startPlatform.userData.isStageObj = true;
+  scene.add(startPlatform);
+  addCyberFrame(-11, 0.12, 0, 4, 4, 0x00ffff);
+  addCornerPylons(-11, 0, 0, 4, 0x00ffff);
+
+  // ── GOAL ZONE ──
+  var goalGeo = new THREE.BoxGeometry(4, 0.12, 4);
+  var goalMat = new THREE.MeshLambertMaterial({ color: 0x000033, transparent: true, opacity: 0.9 });
+  goalPlatform = new THREE.Mesh(goalGeo, goalMat);
+  goalPlatform.position.set(11, 0.06, 0);
+  goalPlatform.receiveShadow = true;
+  goalPlatform.userData.isStageObj = true;
+  scene.add(goalPlatform);
+  addCyberFrame(11, 0.12, 0, 4, 4, ORANGE);
+  addCornerPylons(11, 0, 0, 4, ORANGE);
+
+  // Goal beacon
+  addBeacon(11, 0, 0, ORANGE);
+
+  // ── PLAYER ROBOT ──
+  playerGroup = buildPlayerRobot();
+  playerGroup.position.set(-11, 0, 0);
+  playerGroup.userData.isStageObj = true;
+  scene.add(playerGroup);
+  // Reference to lower sphere for collision
+  playerBall = { position: playerGroup.position };
+  vel = { x: 0, y: 0, z: 0 };
+
+  // ── CONTAINER ITEMS ──
+  var itemPositions = [
+    { x: -5, z: -3 }, { x: -2, z: 3 }, { x: 0, z: -4 },
+    { x: 2, z: 3 },   { x: 4, z: -3 }, { x: 6, z: 4 },
+    { x: 7, z: -4 },  { x: 5, z: 1 }
+  ];
+  totalItems = itemPositions.length;
+  itemPositions.forEach(function(pos, i) {
+    var box = buildContainer();
+    box.position.set(pos.x, 0, pos.z);
+    box.userData.isStageObj = true;
+    box.userData.itemId = i;
+    box.userData.captured = false;
+    scene.add(box);
+    itemObjects.push(box);
+  });
+
+  // ── OBSTACLE ROBOTS ──
+  var obsPositions = [
+    { x: -7, z: 2 }, { x: -3, z: -2 }, { x: 1, z: 2 },
+    { x: 3, z: -4 }, { x: 8, z: 2 }
+  ];
+  obsPositions.forEach(function(pos) {
+    var rob = buildObstacleRobot();
+    rob.position.set(pos.x, 0, pos.z);
+    rob.userData.isStageObj = true;
+    rob.userData.moveTimer = Math.random() * 3;
+    rob.userData.moving = Math.random() > 0.5;
+    rob.userData.moveDir = new THREE.Vector3(Math.random()-0.5, 0, Math.random()-0.5).normalize();
+    rob.userData.moveSpeed = 1.5 + Math.random() * 1.5;
+    rob.userData.startPos = new THREE.Vector3(pos.x, 0, pos.z);
+    scene.add(rob);
+    obstacles.push(rob);
+  });
+
+  // ── ENERGY ITEMS ──
+  var ePositions = [{ x: -4, z: 4 }, { x: 3, z: -2 }, { x: 8, z: -4 }];
+  ePositions.forEach(function(pos) {
+    var item = buildEnergyOrb();
+    item.position.set(pos.x, 0.6, pos.z);
+    item.userData.isStageObj = true;
+    item.userData.active = true;
+    scene.add(item);
+    energyItems.push(item);
+  });
+
+  updateUI();
+}
+
+// ===== PLAYER ROBOT =====
+// 下半身が小さいボール（半分サイズ）、上半身は大きめ、腕はアニメ用に別グループ
+var playerArmL = null, playerArmR = null; // 腕アニメ用参照
+var playerSphere = null;                  // ボール転がり用参照
+
+function buildPlayerRobot() {
+  var group = new THREE.Group();
+  var visR = ballRadius * 0.5; // 視覚的なボール半径（半分）
+  var bodyBase = visR * 2;     // 上半身の開始Y
+
+  // ─ 下半身：小さいボール ─
+  var sphereGeo = new THREE.SphereGeometry(visR, 20, 20);
+  var sphereMat = new THREE.MeshLambertMaterial({ color: 0xff2200, emissive: 0x660000 });
+  playerSphere = new THREE.Mesh(sphereGeo, sphereMat);
+  playerSphere.position.y = visR;
+  playerSphere.castShadow = true;
+  group.add(playerSphere);
+
+  // ボールのライン
+  var lineGeo1 = new THREE.TorusGeometry(visR + 0.01, 0.02, 6, 24);
+  var lineMat  = new THREE.MeshBasicMaterial({ color: 0xff6644 });
+  var line1 = new THREE.Mesh(lineGeo1, lineMat);
+  line1.position.y = visR;
+  line1.rotation.x = Math.PI / 2;
+  group.add(line1);
+  var line2 = new THREE.Mesh(lineGeo1.clone(), lineMat);
+  line2.position.y = visR;
+  group.add(line2);
+
+  // ─ 上半身：大きめ胴体 ─
+  var torsoGeo = new THREE.BoxGeometry(1.1, 0.8, 0.65);
+  var torsoMat = new THREE.MeshLambertMaterial({ color: 0x334455, emissive: 0x001122 });
+  var torso = new THREE.Mesh(torsoGeo, torsoMat);
+  torso.position.y = bodyBase + 0.4;
+  torso.castShadow = true;
+  group.add(torso);
+  var torsoEdge = new THREE.LineSegments(new THREE.EdgesGeometry(torsoGeo), new THREE.LineBasicMaterial({ color: 0x00ffff }));
+  torsoEdge.position.copy(torso.position);
+  group.add(torsoEdge);
+
+  // 胸部グロー
+  var glowGeo = new THREE.PlaneGeometry(0.55, 0.2);
+  var glowMat = new THREE.MeshBasicMaterial({ color: 0x00ffff, side: THREE.DoubleSide });
+  var glow = new THREE.Mesh(glowGeo, glowMat);
+  glow.position.set(0, torso.position.y, 0.33);
+  group.add(glow);
+
+  // ─ 頭部（大きめ） ─
+  var headGeo = new THREE.BoxGeometry(0.72, 0.6, 0.62);
+  var headMat = new THREE.MeshLambertMaterial({ color: 0x223344, emissive: 0x001122 });
+  var head = new THREE.Mesh(headGeo, headMat);
+  head.position.y = bodyBase + 1.05;
+  head.castShadow = true;
+  group.add(head);
+  var headEdge = new THREE.LineSegments(new THREE.EdgesGeometry(headGeo), new THREE.LineBasicMaterial({ color: 0x0088ff }));
+  headEdge.position.copy(head.position);
+  group.add(headEdge);
+
+  // バイザー
+  var visorGeo = new THREE.BoxGeometry(0.52, 0.16, 0.06);
+  var visorMat = new THREE.MeshBasicMaterial({ color: 0x00ffff });
+  var visor = new THREE.Mesh(visorGeo, visorMat);
+  visor.position.set(0, head.position.y, 0.32);
+  group.add(visor);
+
+  // ─ 腕（アニメ用ピボットグループ） ─
+  // ピボットは肩の位置、腕はピボット基点から下に伸びる
+  var armMat = new THREE.MeshLambertMaterial({ color: 0x2a3a4a, emissive: 0x001122 });
+  var armGeo = new THREE.BoxGeometry(0.22, 0.55, 0.22);
+
+  // 左腕ピボット
+  playerArmL = new THREE.Group();
+  playerArmL.position.set(-0.72, bodyBase + 0.72, 0); // 肩位置
+  var armMeshL = new THREE.Mesh(armGeo, armMat.clone());
+  armMeshL.position.set(0, -0.28, 0); // ピボットから下
+  armMeshL.castShadow = true;
+  playerArmL.add(armMeshL);
+  var armEdgeL = new THREE.LineSegments(new THREE.EdgesGeometry(armGeo), new THREE.LineBasicMaterial({ color: 0x0055aa }));
+  armEdgeL.position.copy(armMeshL.position);
+  playerArmL.add(armEdgeL);
+  // 前腕（やや細め）
+  var foreGeoL = new THREE.BoxGeometry(0.17, 0.4, 0.17);
+  var foreL = new THREE.Mesh(foreGeoL, armMat.clone());
+  foreL.position.set(0, -0.68, 0);
+  playerArmL.add(foreL);
+  group.add(playerArmL);
+
+  // 右腕ピボット
+  playerArmR = new THREE.Group();
+  playerArmR.position.set(0.72, bodyBase + 0.72, 0);
+  var armMeshR = new THREE.Mesh(armGeo, armMat.clone());
+  armMeshR.position.set(0, -0.28, 0);
+  armMeshR.castShadow = true;
+  playerArmR.add(armMeshR);
+  var armEdgeR = new THREE.LineSegments(new THREE.EdgesGeometry(armGeo), new THREE.LineBasicMaterial({ color: 0x0055aa }));
+  armEdgeR.position.copy(armMeshR.position);
+  playerArmR.add(armEdgeR);
+  var foreGeoR = new THREE.BoxGeometry(0.17, 0.4, 0.17);
+  var foreR = new THREE.Mesh(foreGeoR, armMat.clone());
+  foreR.position.set(0, -0.68, 0);
+  playerArmR.add(foreR);
+  group.add(playerArmR);
+
+  // ─ アンテナ ─
+  var antGeo = new THREE.CylinderGeometry(0.025, 0.025, 0.38, 6);
+  var antMat = new THREE.MeshBasicMaterial({ color: 0x00ffff });
+  var ant = new THREE.Mesh(antGeo, antMat);
+  ant.position.set(0.14, head.position.y + 0.49, 0);
+  group.add(ant);
+  var antTip = new THREE.Mesh(new THREE.SphereGeometry(0.07, 6, 6), antMat);
+  antTip.position.set(0.14, head.position.y + 0.7, 0);
+  group.add(antTip);
+
+  // 自機全体を半分サイズ
+  group.scale.setScalar(0.5);
+  return group;
+}
+
+// ===== CONTAINER (item) =====
+// グレーのSFコンテナBOX
+function buildContainer() {
+  var group = new THREE.Group();
+
+  // 本体
+  var geo = new THREE.BoxGeometry(0.75, 0.75, 0.75);
+  var mat = new THREE.MeshLambertMaterial({ color: 0x556677, emissive: 0x112233 });
+  var mesh = new THREE.Mesh(geo, mat);
+  mesh.position.y = 0.375;
+  mesh.castShadow = true;
+  group.add(mesh);
+
+  // エッジ
+  var edge = new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: 0x00ccff }));
+  edge.position.y = 0.375;
+  group.add(edge);
+
+  // 上面マーキング
+  var markGeo = new THREE.PlaneGeometry(0.5, 0.5);
+  var markMat = new THREE.MeshBasicMaterial({ color: 0x004466, side: THREE.DoubleSide });
+  var mark = new THREE.Mesh(markGeo, markMat);
+  mark.rotation.x = -Math.PI / 2;
+  mark.position.y = 0.752;
+  group.add(mark);
+
+  // 中央ロゴライン（X字）
+  var xGeo1 = new THREE.PlaneGeometry(0.55, 0.04);
+  var xMat  = new THREE.MeshBasicMaterial({ color: 0x00ffff, side: THREE.DoubleSide });
+  var x1 = new THREE.Mesh(xGeo1, xMat);
+  x1.rotation.set(-Math.PI/2, 0, Math.PI/4);
+  x1.position.y = 0.753;
+  group.add(x1);
+  var x2 = x1.clone();
+  x2.rotation.set(-Math.PI/2, 0, -Math.PI/4);
+  x2.position.y = 0.754;
+  group.add(x2);
+
+  // ハンドルバー
+  var handleGeo = new THREE.BoxGeometry(0.6, 0.06, 0.06);
+  var handleMat = new THREE.MeshLambertMaterial({ color: 0x889aaa });
+  var handle = new THREE.Mesh(handleGeo, handleMat);
+  handle.position.y = 0.9;
+  group.add(handle);
+
+  return group;
+}
+
+// ===== OBSTACLE ROBOT =====
+// 円筒形胴体＋球体頭（カメラ眼）
+function buildObstacleRobot() {
+  var group = new THREE.Group();
+
+  // 脚部（円柱）
+  var legGeo = new THREE.CylinderGeometry(0.28, 0.32, 1.0, 12);
+  var legMat = new THREE.MeshLambertMaterial({ color: 0x442233, emissive: 0x110011 });
+  var leg = new THREE.Mesh(legGeo, legMat);
+  leg.position.y = 0.5;
+  leg.castShadow = true;
+  group.add(leg);
+  var legEdge = new THREE.LineSegments(new THREE.EdgesGeometry(legGeo), new THREE.LineBasicMaterial({ color: 0x990055 }));
+  legEdge.position.y = 0.5;
+  group.add(legEdge);
+
+  // ネック（細い円柱）
+  var neckGeo = new THREE.CylinderGeometry(0.1, 0.15, 0.25, 8);
+  var neckMat = new THREE.MeshLambertMaterial({ color: 0x331122 });
+  var neck = new THREE.Mesh(neckGeo, neckMat);
+  neck.position.y = 1.125;
+  group.add(neck);
+
+  // 頭部（球体 = カメラ眼）
+  var headGeo = new THREE.SphereGeometry(0.38, 16, 16);
+  var headMat = new THREE.MeshLambertMaterial({ color: 0x221133, emissive: 0x110022 });
+  var head = new THREE.Mesh(headGeo, headMat);
+  head.position.y = 1.63;
+  head.castShadow = true;
+  group.add(head);
+  head.userData.isHead = true;
+
+  // カメラ眼（正面のレンズ）
+  var lensGeo = new THREE.CircleGeometry(0.18, 16);
+  var lensMat = new THREE.MeshBasicMaterial({ color: 0xff0044, side: THREE.DoubleSide });
+  var lens = new THREE.Mesh(lensGeo, lensMat);
+  lens.position.set(0, 1.63, 0.36);
+  lens.userData.isLens = true;
+  group.add(lens);
+
+  // レンズ外周リング
+  var ringGeo = new THREE.TorusGeometry(0.18, 0.035, 8, 16);
+  var ringMat = new THREE.MeshBasicMaterial({ color: 0xff4466 });
+  var ring = new THREE.Mesh(ringGeo, ringMat);
+  ring.position.set(0, 1.63, 0.35);
+  group.add(ring);
+
+  // レンズ内部の瞳
+  var pupilGeo = new THREE.CircleGeometry(0.08, 12);
+  var pupilMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  var pupil = new THREE.Mesh(pupilGeo, pupilMat);
+  pupil.position.set(0, 1.63, 0.37);
+  group.add(pupil);
+
+  // ショルダーポッド
+  [-1, 1].forEach(function(s) {
+    var podGeo = new THREE.SphereGeometry(0.14, 8, 8);
+    var pod = new THREE.Mesh(podGeo, new THREE.MeshLambertMaterial({ color: 0x663344 }));
+    pod.position.set(s * 0.42, 0.85, 0);
+    group.add(pod);
+  });
+
+  // 足（3本爪風）
+  [-1, 0, 1].forEach(function(i) {
+    var footGeo = new THREE.BoxGeometry(0.12, 0.12, 0.28);
+    var foot = new THREE.Mesh(footGeo, legMat.clone());
+    foot.position.set(i * 0.2, 0.06, 0.22);
+    group.add(foot);
+  });
+
+  // 70%スケール
+  group.scale.setScalar(0.7);
+  return group;
+}
+
+// ===== ENERGY ORB =====
+function buildEnergyOrb() {
+  var group = new THREE.Group();
+  var geo = new THREE.OctahedronGeometry(0.35, 1);
+  var mat = new THREE.MeshBasicMaterial({ color: 0x00ffaa, wireframe: true });
+  var mesh = new THREE.Mesh(geo, mat);
+  group.add(mesh);
+
+  var innerGeo = new THREE.SphereGeometry(0.2, 8, 8);
+  var innerMat = new THREE.MeshBasicMaterial({ color: 0x00ffaa });
+  group.add(new THREE.Mesh(innerGeo, innerMat));
+  return group;
+}
+
+// ===== CYBER DECORATIONS =====
+function addGlowStrip(x, y, z, w, h, d, color, opacity) {
+  var geo = new THREE.BoxGeometry(w, h, d);
+  var mat = new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: opacity });
+  var mesh = new THREE.Mesh(geo, mat);
+  mesh.position.set(x + w/2, y, z);
+  mesh.userData.isStageObj = true;
+  scene.add(mesh);
+}
+
+function addCyberFrame(cx, y, cz, w, d, color) {
+  var half = 0.02;
+  var lineMat = new THREE.LineBasicMaterial({ color: color });
+  [[w/2, 0, d/2],[w/2, 0, -d/2],[-w/2, 0, d/2],[-w/2, 0, -d/2]].forEach(function(corner) {
+    var pts = [
+      new THREE.Vector3(corner[0]-Math.sign(corner[0])*0.5, y+0.01, corner[2]),
+      new THREE.Vector3(corner[0], y+0.01, corner[2]),
+      new THREE.Vector3(corner[0], y+0.01, corner[2]-Math.sign(corner[2])*0.5)
+    ];
+    var geo = new THREE.BufferGeometry().setFromPoints(pts);
+    var line = new THREE.Line(geo, lineMat);
+    line.position.set(cx, 0, cz);
+    line.userData.isStageObj = true;
+    scene.add(line);
+  });
+}
+
+function addCornerPylons(cx, cy, cz, size, color) {
+  var halfS = size / 2 - 0.2;
+  var pylMat = new THREE.MeshBasicMaterial({ color: color });
+  [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(function(c) {
+    var geo = new THREE.CylinderGeometry(0.05, 0.05, 0.5, 6);
+    var pyl = new THREE.Mesh(geo, pylMat);
+    pyl.position.set(cx + c[0]*halfS, cy + 0.25, cz + c[1]*halfS);
+    pyl.userData.isStageObj = true;
+    scene.add(pyl);
+    var tipGeo = new THREE.SphereGeometry(0.07, 6, 6);
+    var tip = new THREE.Mesh(tipGeo, pylMat);
+    tip.position.set(cx + c[0]*halfS, cy + 0.52, cz + c[1]*halfS);
+    tip.userData.isStageObj = true;
+    scene.add(tip);
+  });
+}
+
+function addBeacon(cx, cy, cz, color) {
+  var beamGeo = new THREE.CylinderGeometry(0.04, 0.04, 4, 6);
+  var beamMat = new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 0.3 });
+  var beam = new THREE.Mesh(beamGeo, beamMat);
+  beam.position.set(cx, cy + 2, cz);
+  beam.userData.isStageObj = true;
+  beam.userData.isBeacon = true;
+  scene.add(beam);
+}
+
+// ===== INPUT =====
+function setupInput() {
+  document.addEventListener('keydown', function(e) { keys[e.code] = true; e.preventDefault(); });
+  document.addEventListener('keyup',   function(e) { keys[e.code] = false; });
+  ['btn-up','btn-down','btn-left','btn-right'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    var dir = id.replace('btn-','');
+    el.addEventListener('touchstart', function(e) { e.preventDefault(); mobileKeys[dir] = true; }, { passive: false });
+    el.addEventListener('touchend',   function(e) { e.preventDefault(); mobileKeys[dir] = false; }, { passive: false });
+    el.addEventListener('mousedown', function() { mobileKeys[dir] = true; });
+    el.addEventListener('mouseup',   function() { mobileKeys[dir] = false; });
+  });
+}
+
+function isKey(codes) {
+  for (var i = 0; i < codes.length; i++) if (keys[codes[i]]) return true;
+  return false;
+}
+
+// ===== GAME FLOW =====
+function startGame() {
+  gameState = 'playing';
+  energy = maxEnergy;
+  buildStage();
+  document.getElementById('overlay').style.display = 'none';
+}
+
+function endGame(won) {
+  gameState = won ? 'clear' : 'gameover';
+  var overlay = document.getElementById('overlay');
+  var h1 = overlay.querySelector('h1');
+  var msg = document.getElementById('overlay-msg');
+  var btn = document.getElementById('startBtn');
+  if (won) {
+    h1.textContent = 'MISSION COMPLETE';
+    h1.style.color = '#00ffaa';
+    h1.style.fontSize = '38px';
+    msg.innerHTML = '全コンテナ回収完了<br><span style="font-size:12px;opacity:0.6">ALL CONTAINERS DELIVERED</span>';
+    btn.textContent = '[ REPLAY ]';
+  } else {
+    h1.textContent = 'UNIT LOST';
+    h1.style.color = '#ff2244';
+    h1.style.fontSize = '52px';
+    msg.innerHTML = energy <= 0 ? 'エネルギー枯渇<br><small>POWER DEPLETED</small>' : 'ステージ外落下<br><small>OUT OF BOUNDS</small>';
+    btn.textContent = '[ RETRY ]';
+  }
+  overlay.style.display = 'flex';
+}
+
+function updateUI() {
+  document.getElementById('item-val').textContent = capturedItems.length + ' / ' + totalItems;
+  var pct = Math.max(0, energy / maxEnergy * 100).toFixed(1);
+  var fill = document.getElementById('energyFill');
+  fill.style.width = pct + '%';
+  fill.style.background = energy > 50
+    ? 'linear-gradient(90deg, #00ffff, #0088ff)'
+    : energy > 25
+      ? 'linear-gradient(90deg, #ffaa00, #ff6600)'
+      : 'linear-gradient(90deg, #ff2244, #ff0000)';
+}
+
+// ===== ANIMATE =====
+function animate() {
+  requestAnimationFrame(animate);
+  var dt = Math.min(clock.getDelta(), 0.05);
+  var t  = performance.now() * 0.001;
+
+  if (gameState === 'playing') updateGame(dt, t);
+  updateSparks(dt);
+  updatePickupPopup(dt);
+
+  // Animate energy orbs
+  energyItems.forEach(function(item) {
+    if (!item.userData.active) return;
+    item.position.y = 0.6 + Math.sin(t * 2.5 + item.position.x) * 0.18;
+    item.rotation.y += dt * 2.5;
+    item.rotation.x += dt * 1.2;
+  });
+
+  // Beacon pulse
+  scene.children.forEach(function(c) {
+    if (c.userData.isBeacon) {
+      c.material.opacity = 0.15 + 0.2 * Math.abs(Math.sin(t * 2));
+    }
+  });
+
+  // Obstacle robot lens flicker
+  obstacles.forEach(function(obs) {
+    obs.children.forEach(function(c) {
+      if (c.userData.isLens) {
+        c.material.color.setRGB(1, Math.random() > 0.95 ? 0.8 : 0, 0.2);
+      }
+    });
+  });
+
+  // ステージ端の波線アニメーション
+  if (dangerLines.length > 0) {
+    var playerPos = playerGroup ? playerGroup.position : null;
+    // ステージ境界からの最短距離（x:±16, z:±13）
+    var BNDX = 16, BNDZ = 13, WARN_DIST = 24.0;
+    var distToEdge = 999;
+    if (playerPos) {
+      var dxL = playerPos.x + BNDX;
+      var dxR = BNDX - playerPos.x;
+      var dzF = playerPos.z + BNDZ;
+      var dzB = BNDZ - playerPos.z;
+      distToEdge = Math.min(dxL, dxR, dzF, dzB);
+    }
+    // 距離が近いほど opacity を上げる (WARN_DIST以内で0→1)
+    var edgeAlpha = distToEdge < WARN_DIST
+      ? Math.pow(1.0 - distToEdge / WARN_DIST, 1.5)
+      : 0.0;
+
+    dangerLines.forEach(function(line) {
+      // 透明度更新
+      line.material.opacity = edgeAlpha;
+
+      // 波形更新: positionBufferをsin波で書き換え
+      var posAttr = line.geometry.attributes.position;
+      var axis = line.userData.axis;
+      var from = line.userData.from;
+      var to   = line.userData.to;
+      var segs = line.userData.segments;
+      var fixedVal = line.userData.fixedVal;
+      var waveAmp  = 0.72;
+      var waveFreq = 14.0;
+      var waveSpeed = t * 11.2; // 時間で波が流れる
+      for (var wi = 0; wi <= segs; wi++) {
+        var u = from + (to - from) * (wi / segs);
+        var wave = Math.sin(u * waveFreq + waveSpeed) * waveAmp * edgeAlpha;
+        if (axis === 'x') {
+          posAttr.setXYZ(wi, u, 0.08 + Math.abs(wave), fixedVal);
+        } else {
+          posAttr.setXYZ(wi, fixedVal, 0.08 + Math.abs(wave), u);
+        }
+      }
+      posAttr.needsUpdate = true;
+    });
+  }
+
+  // 腕の歩行アニメーション
+  if (playerArmL && playerArmR && gameState === 'playing') {
+    var spd2 = Math.sqrt(vel.x*vel.x + vel.z*vel.z);
+    var walkAmt = Math.min(spd2 / maxSpeed, 1.0);
+    var walkFreq = 6.0;
+    var swing = Math.sin(t * walkFreq) * 1.4 * walkAmt;
+    playerArmL.rotation.x =  swing;
+    playerArmR.rotation.x = -swing;
+  }
+
+  // ゴール渦パーティクルのアニメーション
+  if (goalVortexActive) {
+    updateGoalVortex(dt, t);
+  }
+
+  renderer.render(scene, camera);
+}
+
+// ===== GAME UPDATE =====
+function updateGame(dt, t) {
+  // ── Input ──
+  var fwd = 0, side = 0;
+  if (isKey(['ArrowUp','KeyW'])    || mobileKeys['up'])    fwd  =  1;
+  if (isKey(['ArrowDown','KeyS'])  || mobileKeys['down'])  fwd  = -1;
+  if (isKey(['ArrowLeft','KeyA'])  || mobileKeys['left'])  side = -1;
+  if (isKey(['ArrowRight','KeyD']) || mobileKeys['right']) side =  1;
+
+  var moveX = Math.sin(camYaw) * (-fwd) + Math.cos(camYaw) * side;
+  var moveZ = Math.cos(camYaw) * (-fwd) - Math.sin(camYaw) * side;
+  var moving = (moveX !== 0 || moveZ !== 0);
+
+  if (moving) {
+    vel.x += moveX * speed * dt;
+    vel.z += moveZ * speed * dt;
+    var curSpd = Math.sqrt(vel.x*vel.x + vel.z*vel.z);
+    if (curSpd > maxSpeed) { vel.x = vel.x/curSpd*maxSpeed; vel.z = vel.z/curSpd*maxSpeed; }
+    energy -= 30 * dt;
+  }
+
+  vel.x *= Math.pow(friction, dt * 60);
+  vel.z *= Math.pow(friction, dt * 60);
+  vel.y += gravity * dt;
+
+  var pos = playerGroup.position;
+  pos.x += vel.x * dt;
+  pos.z += vel.z * dt;
+  pos.y += vel.y * dt;
+
+  if (pos.y <= 0) { pos.y = 0; vel.y = 0; }
+
+  // ── Player robot orientation: face movement direction ──
+  var spd = Math.sqrt(vel.x*vel.x + vel.z*vel.z);
+  if (spd > 1.0) {
+    var targetAngle = Math.atan2(vel.x, vel.z);
+    var curAngle = playerGroup.rotation.y;
+    var diff = targetAngle - curAngle;
+    while (diff >  Math.PI) diff -= Math.PI * 2;
+    while (diff < -Math.PI) diff += Math.PI * 2;
+    playerGroup.rotation.y += diff * Math.min(1, dt * 12);
+  }
+
+  // ── Ball rolling visual (lower sphere) ──
+  if (spd > 0.5) {
+    var axis = new THREE.Vector3(-vel.z, 0, vel.x).normalize();
+    // rotate only sphere children (first sphere)
+    playerGroup.children[0].rotateOnWorldAxis(axis, spd * dt / ballRadius);
+  }
+
+  // ── Bounds ──
+  // 落下のみゲームオーバー
+  if (pos.y < -6) { endGame(false); return; }
+
+  // ステージ端: バウンス + 演出 + 全コンテナ放出
+  if (edgeHitCooldown > 0) edgeHitCooldown -= dt;
+  var hitEdge = false;
+  var enx = 0, enz = 0; // バウンス法線
+  if (pos.x < -15) { pos.x = -15; vel.x = Math.abs(vel.x) * 0.8; enx =  1; hitEdge = true; }
+  if (pos.x >  15) { pos.x =  15; vel.x = -Math.abs(vel.x) * 0.8; enx = -1; hitEdge = true; }
+  if (pos.z < -12) { pos.z = -12; vel.z = Math.abs(vel.z) * 0.8; enz =  1; hitEdge = true; }
+  if (pos.z >  12) { pos.z =  12; vel.z = -Math.abs(vel.z) * 0.8; enz = -1; hitEdge = true; }
+
+  if (hitEdge && edgeHitCooldown <= 0) {
+    edgeHitCooldown = 0.5;
+    // スパーク
+    spawnSpark(pos.x + enx * 0.5, 0.5, pos.z + enz * 0.5);
+    // カメラシェイク
+    camShake = 0.4; camShakeAmt = 0.8;
+    // 全コンテナを吹き飛ばす
+    while (capturedItems.length > 0) {
+      var ejected = capturedItems.pop();
+      ejected.userData.captured = false;
+      var flyAngle = Math.random() * Math.PI * 2;
+      var flySpeedH = 5 + Math.random() * 7;
+      var flySpeedV = 4 + Math.random() * 5;
+      flyingContainers.push({
+        obj: ejected,
+        vx: Math.cos(flyAngle) * flySpeedH,
+        vy: flySpeedV,
+        vz: Math.sin(flyAngle) * flySpeedH,
+        wx: (Math.random()-0.5)*8,
+        wy: (Math.random()-0.5)*8,
+        wz: (Math.random()-0.5)*8,
+      });
+      ejected.children.forEach(function(c) {
+        if (c.material && c.material.emissive) c.material.emissive.setHex(0x112233);
+      });
+    }
+    // ゴール渦をリセット（全取得が崩れる場合）
+    if (goalVortexActive) {
+      goalVortex.forEach(function(p) { scene.remove(p.mesh); });
+      goalVortex = []; goalVortexActive = false;
+    }
+  }
+  energy = Math.max(0, energy);
+  if (energy <= 0) { endGame(false); return; }
+
+  // ── Item pickup ──
+  itemObjects.forEach(function(item) {
+    if (item.userData.captured) return;
+    var dx = pos.x - item.position.x, dz = pos.z - item.position.z;
+    if (Math.sqrt(dx*dx+dz*dz) < 1.0) {
+      item.userData.captured = true;
+      capturedItems.push(item);
+      // Highlight captured
+      item.children.forEach(function(c) {
+        if (c.material && c.material.emissive) c.material.emissive.setHex(0x004488);
+      });
+      // コンテナ取得ポップアップ表示
+      showPickupPopup(capturedItems.length, totalItems);
+      // 全コンテナ取得でゴール渦エフェクト起動
+      if (capturedItems.length === totalItems && !goalVortexActive) {
+        goalVortexActive = true;
+        spawnGoalVortex();
+      }
+    }
+  });
+
+  // ── Chain ──
+  updateChain(dt);
+  // ── Flying containers physics ──
+  updateFlyingContainers(dt);
+
+  // ── Obstacles ──
+  obstacles.forEach(function(obs) {
+    // Movement AI: random move/stop
+    obs.userData.moveTimer -= dt;
+    if (obs.userData.moveTimer <= 0) {
+      obs.userData.moving = !obs.userData.moving;
+      obs.userData.moveTimer = obs.userData.moving
+        ? 1.0 + Math.random() * 3.0   // 移動時間
+        : 0.5 + Math.random() * 2.0;  // 停止時間
+      if (obs.userData.moving) {
+        // 新しいランダム方向
+        var angle = Math.random() * Math.PI * 2;
+        obs.userData.moveDir.set(Math.sin(angle), 0, Math.cos(angle));
+      }
+    }
+
+    if (obs.userData.moving) {
+      var sp = obs.userData.moveSpeed;
+      obs.position.x += obs.userData.moveDir.x * sp * dt;
+      obs.position.z += obs.userData.moveDir.z * sp * dt;
+      // ステージ内で反射
+      if (obs.position.x < -13 || obs.position.x > 13) { obs.userData.moveDir.x *= -1; obs.position.x = Math.max(-13, Math.min(13, obs.position.x)); }
+      if (obs.position.z < -10 || obs.position.z > 10) { obs.userData.moveDir.z *= -1; obs.position.z = Math.max(-10, Math.min(10, obs.position.z)); }
+      // 向きを移動方向に回転
+      obs.rotation.y = Math.atan2(obs.userData.moveDir.x, obs.userData.moveDir.z);
+    }
+
+    // ── Obstacle collision ──
+    var dx = pos.x - obs.position.x, dz = pos.z - obs.position.z;
+    var dist = Math.sqrt(dx*dx + dz*dz);
+    if (dist < 1.1 && !obs.userData.hitCooldown) {
+      var nx = dist > 0 ? dx/dist : 1, nz = dist > 0 ? dz/dist : 0;
+      // 衝突点でスパーク発生
+      spawnSpark(
+        pos.x - nx * ballRadius,
+        0.8,
+        pos.z - nz * ballRadius
+      );
+      // カメラシェイク
+      camShake = 0.35;
+      camShakeAmt = 0.6;
+      // バウンス
+      pos.x += nx * (1.1 - dist);
+      pos.z += nz * (1.1 - dist);
+      vel.x = nx * 6; vel.z = nz * 6;
+      // 最後尾アイテムをランダム方向に吹き飛ばす
+      if (capturedItems.length > 0) {
+        obs.userData.hitCooldown = 0.4;
+        var ejected = capturedItems.pop();
+        ejected.userData.captured = false;
+        // ランダムな吹き飛び方向（水平360度 + 上方向）
+        var flyAngle = Math.random() * Math.PI * 2;
+        var flySpeedH = 5 + Math.random() * 6;
+        var flySpeedV = 4 + Math.random() * 5;
+        var spinX = (Math.random() - 0.5) * 8;
+        var spinY = (Math.random() - 0.5) * 8;
+        var spinZ = (Math.random() - 0.5) * 8;
+        flyingContainers.push({
+          obj: ejected,
+          vx: Math.cos(flyAngle) * flySpeedH,
+          vy: flySpeedV,
+          vz: Math.sin(flyAngle) * flySpeedH,
+          wx: spinX, wy: spinY, wz: spinZ,
+        });
+        ejected.children.forEach(function(c) {
+          if (c.material && c.material.emissive) c.material.emissive.setHex(0x112233);
+        });
+      }
+    }
+    if (obs.userData.hitCooldown > 0) obs.userData.hitCooldown -= dt;
+  });
+
+  // ── Energy orbs ──
+  energyItems.forEach(function(item) {
+    if (!item.userData.active) return;
+    var dx = pos.x - item.position.x, dz = pos.z - item.position.z;
+    if (Math.sqrt(dx*dx+dz*dz) < 0.9) {
+      item.userData.active = false; item.visible = false;
+      energy = Math.min(maxEnergy, energy + 30);
+    }
+  });
+
+  // ── Goal ──
+  var gp = goalPlatform.position;
+  if (Math.abs(pos.x - gp.x) < 2.5 && Math.abs(pos.z - gp.z) < 2.5 && capturedItems.length === totalItems) {
+    endGame(true); return;
+  }
+
+  updateUI();
+  updateCamera(dt);
+}
+
+// ===== CHAIN =====
+function updateChain(dt) {
+  var spacing = 24.0;
+  var prev = playerGroup.position;
+  capturedItems.forEach(function(item) {
+    // スムーズ追従 (lerp) + 最大距離制限
+    var tx = prev.x - (prev.x - item.position.x) * 0.2;
+    var tz = prev.z - (prev.z - item.position.z) * 0.2;
+    var dx = prev.x - item.position.x;
+    var dz = prev.z - item.position.z;
+    var dist = Math.sqrt(dx*dx + dz*dz);
+    if (dist > spacing) {
+      // 最大距離を超えたらスナップ
+      var nx = dx / dist, nz = dz / dist;
+      item.position.x = prev.x - nx * spacing;
+      item.position.z = prev.z - nz * spacing;
+    } else {
+      // 通常はlerpで滑らかに追従
+      item.position.x += (tx - item.position.x) * 0.15;
+      item.position.z += (tz - item.position.z) * 0.15;
+    }
+    item.position.y = 0;
+    // 向き: 前のノードの方向を向く
+    if (Math.abs(dx) + Math.abs(dz) > 0.01) item.rotation.y = Math.atan2(dx, dz);
+    prev = item.position;
+  });
+}
+
+// ===== GOAL VORTEX PARTICLES =====
+function spawnGoalVortex() {
+  // ゴールプラットフォームの位置
+  var gx = goalPlatform.position.x;
+  var gz = goalPlatform.position.z;
+  var count = 80;
+  for (var i = 0; i < count; i++) {
+    var angle0 = (i / count) * Math.PI * 2;
+    var radius0 = 0.3 + Math.random() * 1.8;
+    var h0 = Math.random() * 5.0;
+    var colors = [0x00ffff, 0xffffff, 0x0088ff, 0x00ffaa, 0xff8800];
+    var col = colors[Math.floor(Math.random() * colors.length)];
+    var geo = new THREE.SphereGeometry(0.09 + Math.random() * 0.07, 4, 4);
+    var mat = new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.9 });
+    var mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(
+      gx + Math.cos(angle0) * radius0,
+      h0,
+      gz + Math.sin(angle0) * radius0
+    );
+    scene.add(mesh);
+    goalVortex.push({
+      mesh: mesh,
+      angle: angle0,
+      radius: radius0,
+      height: h0,
+      speed: 1.2 + Math.random() * 1.5,   // 回転速度
+      riseSpeed: 0.8 + Math.random() * 1.2, // 上昇速度
+      maxH: 5.0 + Math.random() * 2.0,
+    });
+  }
+}
+
+function updateGoalVortex(dt, t) {
+  var gx = goalPlatform.position.x;
+  var gz = goalPlatform.position.z;
+  goalVortex.forEach(function(p) {
+    // 螺旋上昇
+    p.angle += p.speed * dt;
+    p.height += p.riseSpeed * dt;
+    // ループ（上まで行ったら下から再開）
+    if (p.height > p.maxH) { p.height = 0; p.angle += Math.PI * 0.3; }
+    // 半径は高さに応じて中心へ収束
+    var r = p.radius * (1.0 - p.height / p.maxH * 0.5);
+    p.mesh.position.set(
+      gx + Math.cos(p.angle) * r,
+      p.height,
+      gz + Math.sin(p.angle) * r
+    );
+    // フリッカー
+    p.mesh.material.opacity = 0.5 + 0.5 * Math.abs(Math.sin(t * 4 + p.angle));
+  });
+}
+
+// ===== SPARK PARTICLES =====
+function spawnSpark(x, y, z) {
+  var count = 36 + Math.floor(Math.random() * 18);
+  for (var i = 0; i < count; i++) {
+    var geo = new THREE.SphereGeometry(0.11, 4, 4);
+    // 色: シアン/オレンジ/白をランダムに
+    var colors = [0x00ffff, 0xff6600, 0xffffff, 0xffcc00, 0xff2244];
+    var col = colors[Math.floor(Math.random() * colors.length)];
+    var mat = new THREE.MeshBasicMaterial({ color: col });
+    var mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(x, y, z);
+    scene.add(mesh);
+    // ランダムな速度ベクトル（上方向バイアスあり）
+    var angle = Math.random() * Math.PI * 2;
+    var upBias = 0.3 + Math.random() * 0.7;
+    var sp2 = 5.0 + Math.random() * 8.0;
+    sparks.push({
+      mesh: mesh,
+      vx: Math.cos(angle) * sp2 * (1 - upBias * 0.5),
+      vy: upBias * sp2,
+      vz: Math.sin(angle) * sp2 * (1 - upBias * 0.5),
+      life: 0.3 + Math.random() * 0.35,
+      maxLife: 0,
+    });
+    sparks[sparks.length-1].maxLife = sparks[sparks.length-1].life;
+  }
+}
+
+function updateSparks(dt) {
+  for (var i = sparks.length - 1; i >= 0; i--) {
+    var s = sparks[i];
+    s.life -= dt;
+    if (s.life <= 0) {
+      scene.remove(s.mesh);
+      s.mesh.geometry.dispose();
+      s.mesh.material.dispose();
+      sparks.splice(i, 1);
+      continue;
+    }
+    // 重力
+    s.vy -= 12 * dt;
+    s.mesh.position.x += s.vx * dt;
+    s.mesh.position.y += s.vy * dt;
+    s.mesh.position.z += s.vz * dt;
+    // 地面でバウンス
+    if (s.mesh.position.y < 0.05) { s.mesh.position.y = 0.05; s.vy *= -0.35; }
+    // フェードアウト
+    var alpha = s.life / s.maxLife;
+    s.mesh.material.opacity = alpha;
+    s.mesh.material.transparent = true;
+    // スケールダウン
+    var sc = 0.4 + alpha * 0.6;
+    s.mesh.scale.setScalar(sc);
+  }
+}
+
+// ===== FLYING CONTAINERS PHYSICS =====
+function updateFlyingContainers(dt) {
+  for (var i = flyingContainers.length - 1; i >= 0; i--) {
+    var fc = flyingContainers[i];
+    fc.vy -= 18 * dt; // 重力
+    fc.obj.position.x += fc.vx * dt;
+    fc.obj.position.y += fc.vy * dt;
+    fc.obj.position.z += fc.vz * dt;
+    // 回転
+    fc.obj.rotation.x += fc.wx * dt;
+    fc.obj.rotation.y += fc.wy * dt;
+    fc.obj.rotation.z += fc.wz * dt;
+    // 地面バウンス
+    if (fc.obj.position.y <= 0) {
+      fc.obj.position.y = 0;
+      fc.vy *= -0.35;
+      fc.vx *= 0.7;
+      fc.vz *= 0.7;
+      fc.wx *= 0.6;
+      fc.wz *= 0.6;
+      // ほぼ止まったら物理終了
+      if (Math.abs(fc.vy) < 0.3) {
+        fc.obj.position.y = 0;
+        flyingContainers.splice(i, 1);
+      }
+    }
+  }
+}
+
+// ===== PICKUP POPUP =====
+var _popupEl = null;
+function showPickupPopup(got, total) {
+  if (!_popupEl) _popupEl = document.getElementById('pickup-popup');
+  _popupEl.textContent = got + ' / ' + total + '  CONTAINER';
+  pickupPopupTimer = 1.0;
+  _popupEl.style.opacity = '1';
+}
+
+function updatePickupPopup(dt) {
+  if (pickupPopupTimer <= 0) return;
+  if (!_popupEl) _popupEl = document.getElementById('pickup-popup');
+  pickupPopupTimer -= dt;
+  if (pickupPopupTimer <= 0) {
+    pickupPopupTimer = 0;
+    _popupEl.style.opacity = '0';
+    return;
+  }
+  // 自機のワールド座標をスクリーン座標に変換
+  var worldPos = new THREE.Vector3();
+  playerGroup.getWorldPosition(worldPos);
+  worldPos.y += 3.0; // 頭上
+  worldPos.project(camera);
+  var sx = ( worldPos.x * 0.5 + 0.5) * window.innerWidth;
+  var sy = (-worldPos.y * 0.5 + 0.5) * window.innerHeight;
+  _popupEl.style.left = sx + 'px';
+  _popupEl.style.top  = sy + 'px';
+  // 残り時間が0.2秒以下でフェードアウト
+  if (pickupPopupTimer < 0.2) {
+    _popupEl.style.opacity = (pickupPopupTimer / 0.2).toFixed(2);
+  }
+}
+
+// ===== CAMERA =====
+function updateCamera(dt) {
+  var pos = playerGroup.position;
+  var spd = Math.sqrt(vel.x*vel.x + vel.z*vel.z);
+  if (spd > 2.0) {
+    var targetYaw = Math.atan2(vel.x, vel.z) + Math.PI;
+    var diff = targetYaw - camYaw;
+    while (diff >  Math.PI) diff -= Math.PI * 2;
+    while (diff < -Math.PI) diff += Math.PI * 2;
+    camYaw += diff * Math.min(1, dt * 4.5);
+  }
+  var desiredX = pos.x + Math.sin(camYaw) * camDist;
+  var desiredY = pos.y + camHeight + spd * 0.05;
+  var desiredZ = pos.z + Math.cos(camYaw) * camDist;
+  camera.position.x += (desiredX - camera.position.x) * Math.min(1, dt * 8);
+  camera.position.y += (desiredY - camera.position.y) * Math.min(1, dt * 6);
+  camera.position.z += (desiredZ - camera.position.z) * Math.min(1, dt * 8);
+
+  // カメラシェイク
+  var shakeX = 0, shakeY = 0;
+  if (camShake > 0) {
+    camShake -= dt;
+    var intensity = camShakeAmt * (camShake / 0.35);
+    shakeX = (Math.random() - 0.5) * intensity;
+    shakeY = (Math.random() - 0.5) * intensity;
+    if (camShake < 0) { camShake = 0; shakeX = 0; shakeY = 0; }
+  }
+  camera.lookAt(
+    pos.x - Math.sin(camYaw)*2 + shakeX,
+    pos.y + 1 + shakeY,
+    pos.z - Math.cos(camYaw)*2
+  );
+}
+</script>
+</body>
+</html>
