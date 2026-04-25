@@ -758,13 +758,21 @@ footer p { font-family:'VT323',monospace; font-size:1rem; color:rgba(255,245,240
   margin: 0 auto;
   padding: 0 20px 80px;
 }
+.creator-ja-title {
+  font-family: 'DotGothic16', 'Noto Sans JP', sans-serif;
+  font-size: clamp(0.98rem, 2.1vw, 1.4rem);
+  color: rgba(255,245,240,.85);
+  text-align: center;
+  letter-spacing: .12em;
+  margin: 8px 0 0;
+}
 .creator-philosophy {
   text-align: center;
   padding: 36px 20px 44px;
 }
 .cp-lead {
   font-family: 'DotGothic16', 'Noto Sans JP', sans-serif;
-  font-size: clamp(1.1rem, 2.5vw, 1.55rem);
+  font-size: clamp(0.77rem, 1.75vw, 1.08rem);
   line-height: 2.0;
   color: rgba(255,245,240,.75);
   letter-spacing: .06em;
@@ -812,7 +820,7 @@ footer p { font-family:'VT323',monospace; font-size:1rem; color:rgba(255,245,240
 }
 .case-title {
   font-family: 'VT323', monospace;
-  font-size: 1.5rem;
+  font-size: 1.05rem;
   letter-spacing: .1em;
   color: var(--fg);
   margin-bottom: 14px;
@@ -830,53 +838,99 @@ footer p { font-family:'VT323',monospace; font-size:1rem; color:rgba(255,245,240
 /* ════════════════════════════════════════
    CONTACT
 ════════════════════════════════════════ */
-#contact {
-  max-width: 1060px;
+/* ════════════════════════════════════════
+   MESSAGE FORM
+════════════════════════════════════════ */
+#message {
+  max-width: 720px;
   margin: 0 auto;
   padding: 0 20px 100px;
-  text-align: center;
 }
-.contact-inner {
+.msg-wrap {
   background: var(--card);
   border: 1px solid rgba(255,255,255,.07);
+  border-top: 3px solid var(--neon-orange);
   border-radius: 6px;
-  padding: 52px 32px;
+  padding: 40px 36px;
   margin-top: 8px;
 }
-.contact-lead {
+.msg-lead {
   font-family: 'VT323', monospace;
-  font-size: 1.5rem;
+  font-size: 1.3rem;
   color: var(--dim);
-  letter-spacing: .1em;
-  margin-bottom: 28px;
-}
-.contact-mail {
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-  font-family: 'VT323', monospace;
-  font-size: 1.8rem;
   letter-spacing: .08em;
+  margin-bottom: 32px;
+  text-align: center;
+}
+.msg-field {
+  margin-bottom: 22px;
+}
+.msg-label {
+  display: block;
+  font-family: 'Press Start 2P', monospace;
+  font-size: .48rem;
+  letter-spacing: .18em;
   color: var(--neon-orange);
-  text-decoration: none;
-  padding: 16px 32px;
-  border: 2px solid var(--neon-orange);
-  border-radius: 4px;
-  box-shadow: 0 0 20px rgba(253,203,110,.15);
-  transition: all .25s;
+  margin-bottom: 8px;
 }
-.contact-mail:hover {
-  background: rgba(253,203,110,.08);
-  box-shadow: 0 0 32px rgba(253,203,110,.35);
-  transform: translateY(-2px);
-}
-.contact-icon { font-size: 1.6rem; }
-.contact-note {
+.msg-opt {
   font-family: 'VT323', monospace;
-  font-size: 1.1rem;
+  font-size: .9rem;
   color: rgba(255,245,240,.3);
-  letter-spacing: .08em;
-  margin-top: 24px;
+  letter-spacing: .05em;
+}
+.msg-input,
+.msg-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  background: rgba(0,0,0,.4);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 3px;
+  padding: 12px 16px;
+  color: var(--fg);
+  font-family: 'VT323', monospace;
+  font-size: 1.2rem;
+  letter-spacing: .06em;
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+  resize: vertical;
+}
+.msg-input::placeholder,
+.msg-textarea::placeholder {
+  color: rgba(255,245,240,.2);
+}
+.msg-input:focus,
+.msg-textarea:focus {
+  border-color: var(--neon-orange);
+  box-shadow: 0 0 12px rgba(253,203,110,.2);
+}
+.msg-submit {
+  width: 100%;
+  margin-top: 8px;
+  padding: 18px;
+  background: var(--neon-orange);
+  border: none;
+  border-radius: 3px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: .6rem;
+  letter-spacing: .18em;
+  color: #000;
+  cursor: pointer;
+  transition: all .2s;
+  box-shadow: 0 0 20px rgba(253,203,110,.3);
+}
+.msg-submit:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 32px rgba(253,203,110,.55);
+  filter: brightness(1.1);
+}
+.msg-note {
+  font-family: 'VT323', monospace;
+  font-size: 1rem;
+  color: rgba(255,245,240,.25);
+  letter-spacing: .06em;
+  text-align: center;
+  margin-top: 20px;
 }
 </style>
 </head>
@@ -1200,6 +1254,7 @@ footer p { font-family:'VT323',monospace; font-size:1rem; color:rgba(255,245,240
 ════════════════════════════════════════ -->
 <section id="case">
   <div class="sec-head"><span>// DIGITAL EXPERIENCE CREATOR</span></div>
+  <p class="creator-ja-title">デジタル体験クリエイター</p>
 
   <div class="creator-philosophy">
     <p class="cp-lead">
@@ -1246,17 +1301,33 @@ footer p { font-family:'VT323',monospace; font-size:1rem; color:rgba(255,245,240
 </section>
 
 <!-- ═══════════════════════════════════════
-     CONTACT
+     MESSAGE
 ════════════════════════════════════════ -->
-<section id="contact">
-  <div class="sec-head"><span>// CONTACT</span></div>
-  <div class="contact-inner">
-    <p class="contact-lead">ゲームの感想、コラボ依頼、なんでも。</p>
-    <a href="mailto:nomi3216@gmail.com" class="contact-mail">
-      <span class="contact-icon">✉</span>
-      nomi3216@gmail.com
-    </a>
-    <p class="contact-note">返信は遅いかもしれないが、ちゃんと読んでいる。</p>
+<section id="message">
+  <div class="sec-head"><span>// MESSAGE</span></div>
+  <div class="msg-wrap">
+    <p class="msg-lead">ゲームの感想、なんでも。ひとこと残していってください。</p>
+
+    <!-- ★ SSGform のフォームID（YOUR_FORM_ID）を取得後に差し替えてください -->
+    <form class="msg-form" action="https://ssgform.com/s/tauVFs3GrivL" method="POST">
+
+      <div class="msg-field">
+        <label class="msg-label">NAME <span class="msg-opt">（任意）</span></label>
+        <input class="msg-input" type="text" name="name" placeholder="PLAYER NAME...">
+      </div>
+
+      <div class="msg-field">
+        <label class="msg-label">MESSAGE</label>
+        <textarea class="msg-textarea" name="message" rows="5" placeholder="感想・ひとこと・なんでも..." required></textarea>
+      </div>
+
+      <button class="msg-submit" type="submit">
+        ▶ &nbsp;SEND MESSAGE
+      </button>
+
+    </form>
+
+    <p class="msg-note">※ メールアドレス不要。送信するとNOMMYに届きます。</p>
   </div>
 </section>
 
