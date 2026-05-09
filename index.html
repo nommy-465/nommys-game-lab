@@ -1004,29 +1004,28 @@ footer p { font-family:'VT323',monospace; font-size:1rem; color:rgba(255,245,240
 <main id="works">
   <div class="sec-head"><span>// SELECT STAGE</span></div>
 
-  <!-- ══════════ GAME 01: ALDEBARAN ══════════ -->
+  <!-- ══════════ GAME 01: BAYWATCH ══════════ -->
   <div class="game-card">
     <div class="gc-stripe gs-01"></div>
     <div class="gc-stage">
-      <!-- Left -->
-      <div class="gc-left">
+      <div class="gc-left" style="background:linear-gradient(135deg,rgba(255,202,40,.06) 0%,transparent 70%)">
         <div>
           <div class="gc-num">STAGE — 01</div>
           <div class="gc-title-row">
-            <span class="gc-emoji">🚀</span>
-            <span class="gc-title gt-01">ALDEBARAN</span>
+            <span class="gc-emoji">🌊</span>
+            <span class="gc-title gt-01">BAYWATCH</span>
           </div>
           <div class="gc-tags">
-            <span class="gc-tag tt-01">COLLECT</span>
-            <span class="gc-tag tt-01">CYBERPUNK</span>
             <span class="gc-tag tt-01">ACTION</span>
+            <span class="gc-tag tt-01">RESCUE</span>
+            <span class="gc-tag tt-01">OCEAN</span>
           </div>
         </div>
-        <a class="play-btn pb-01" href="TAG_BM3.html" target="_blank">PLAY NOW</a>
+        <a class="play-btn pb-01" href="baywatch.html" target="_blank">PLAY NOW</a>
       </div>
-      <!-- Right: CSS Preview -->
+      <!-- CSS Preview: Ocean -->
       <div class="gc-preview">
-        <img src="screenshot_tag_bm3_final.png" alt="ALDEBARAN screenshot">
+        <img src="screenshot_baywatch.png" alt="BAYWATCH screenshot">
       </div>
     </div>
 
@@ -1034,16 +1033,19 @@ footer p { font-family:'VT323',monospace; font-size:1rem; color:rgba(255,245,240
     <div class="gc-controls">
       <span class="ctrl-label">CONTROLS</span>
       <div class="ctrl-item">
-        <kbd class="k-01">↑</kbd><kbd class="k-01">↓</kbd><kbd class="k-01">←</kbd><kbd class="k-01">→</kbd>
-        <span class="ctrl-desc" style="color:var(--block-coral)">移動</span>
+        <kbd class="k-01">↑</kbd>
+        <span class="ctrl-desc" style="color:var(--sky-gold)">前進</span>
       </div>
       <div class="ctrl-item">
-        <kbd class="k-01">W</kbd><kbd class="k-01">A</kbd><kbd class="k-01">S</kbd><kbd class="k-01">D</kbd>
-        <span class="ctrl-desc" style="color:rgba(255,107,107,.6)">でも可</span>
+        <kbd class="k-01">←</kbd><kbd class="k-01">→</kbd>
+        <span class="ctrl-desc" style="color:var(--sky-gold)">方向転換</span>
+      </div>
+      <div class="ctrl-item">
+        <kbd class="k-01">W</kbd><kbd class="k-01">A</kbd><kbd class="k-01">D</kbd>
+        <span class="ctrl-desc" style="color:rgba(255,202,40,.5)">でも可</span>
       </div>
     </div>
 
-    <!-- Accordion -->
     <div class="accordion-wrap">
       <div class="accordion-item">
         <button class="accordion-btn ab-01" onclick="toggleAccordion(this)" aria-expanded="false">
@@ -1053,7 +1055,7 @@ footer p { font-family:'VT323',monospace; font-size:1rem; color:rgba(255,245,240
         <div class="accordion-body">
           <div class="accordion-inner">
             <p class="game-desc-inner">
-              サイバー空間を舞台にしたBOX集めゲーム。プレイヤーは限定された空間に散らばるBOXをすべて回収することが目標。エリア端の電流ラインや徘徊する敵ロボに当たるとダメージを受ける。エネルギーを補給しながら慎重に動き、BOXをすべて集めるとクリアゲートが開く。シンプルなルールの中に、判断力と立ち回りが問われる緊張感がある。
+              物理演算による慣性と波の抵抗を体感しながら、溺れる人を救助するマリンアクション。プレイヤーが操るのはボート。救助に使うのはロープで引っ張る浮き輪だ。思い通りにならない船の動きと格闘しながら、制限時間内にすべての要救助者を助け出せ。「うまく近づけない」もどかしさこそが、このゲームの核心にある。
             </p>
           </div>
         </div>
@@ -1068,8 +1070,9 @@ footer p { font-family:'VT323',monospace; font-size:1rem; color:rgba(255,245,240
             <div class="dialog-box db-01">
               <div class="dialog-speaker ds-01">▷ NOMMY :</div>
               <p class="dialog-text">
-                簡単な操作入力を可能な限り少なくして、操作していくと、ゲームのルールとゴールがなんとなく理解していける。<br><br>
-                そんなのの一つの方向性として作ってみた。できているかな？
+                物理演算は、作り手として本当に面白い。見た目の気持ちよさと、予測できない動きの面白さが同居している。昔からマリンスポーツが好きで、いつか海を題材にしたゲームを作りたいと思っていた。<br><br>
+                海で見るライフセーバーはヒーローそのものだ。あれはゲームになる、とずっと思っていた。実は昔、船舶免許を取ったことがある。その試験に人命救助の実技があって——これが難しかった。ボートをうまく救助者のそばに寄せられない。焦れば焦るほど遠ざかる。その「もどかしさ」を、物理演算でそのまま再現したのがこのゲームだ。<br><br>
+                ちなみに、ビキニの美少女とおっさんが同時に溺れていたらどちらを先に助けるか——そういうゲーム性も頭をよぎったが、それはまた別の話にしておこう。
               </p>
               <span class="dialog-cursor dc-01"></span>
             </div>
@@ -1077,30 +1080,31 @@ footer p { font-family:'VT323',monospace; font-size:1rem; color:rgba(255,245,240
         </div>
       </div>
     </div>
-  </div><!-- /game-card 01 -->
+  </div><!-- /game-card 03 -->
 
-  <!-- ══════════ GAME 02: POLYGON STAR ══════════ -->
+  <!-- ══════════ GAME 02: ALDEBARAN ══════════ -->
   <div class="game-card">
     <div class="gc-stripe gs-02"></div>
     <div class="gc-stage">
-      <div class="gc-left" style="background:linear-gradient(135deg,rgba(29,233,182,.06) 0%,transparent 70%)">
+      <!-- Left -->
+      <div class="gc-left">
         <div>
           <div class="gc-num">STAGE — 02</div>
           <div class="gc-title-row">
-            <span class="gc-emoji">⭐</span>
-            <span class="gc-title gt-02">STARSHIP TROOPERS</span>
+            <span class="gc-emoji">🚀</span>
+            <span class="gc-title gt-02">ALDEBARAN</span>
           </div>
           <div class="gc-tags">
-            <span class="gc-tag tt-02">3D</span>
-            <span class="gc-tag tt-02">VECTOR</span>
-            <span class="gc-tag tt-02">THREE.JS</span>
+            <span class="gc-tag tt-02">COLLECT</span>
+            <span class="gc-tag tt-02">CYBERPUNK</span>
+            <span class="gc-tag tt-02">ACTION</span>
           </div>
         </div>
-        <a class="play-btn pb-02" href="polygon_star_collision_fix.html" target="_blank">PLAY NOW</a>
+        <a class="play-btn pb-02" href="TAG_BM3.html" target="_blank">PLAY NOW</a>
       </div>
-      <!-- CSS Preview: 3D Polygon -->
+      <!-- Right: CSS Preview -->
       <div class="gc-preview">
-        <img src="screenshot_starship_final.png" alt="Starship Troopers screenshot">
+        <img src="screenshot_tag_bm3_final.png" alt="ALDEBARAN screenshot">
       </div>
     </div>
 
@@ -1108,22 +1112,16 @@ footer p { font-family:'VT323',monospace; font-size:1rem; color:rgba(255,245,240
     <div class="gc-controls">
       <span class="ctrl-label">CONTROLS</span>
       <div class="ctrl-item">
-        <kbd class="k-02">↑</kbd><kbd class="k-02">↓</kbd>
-        <span class="ctrl-desc" style="color:var(--neon-teal)">前進 / 後退</span>
+        <kbd class="k-02">↑</kbd><kbd class="k-02">↓</kbd><kbd class="k-02">←</kbd><kbd class="k-02">→</kbd>
+        <span class="ctrl-desc" style="color:var(--block-coral)">移動</span>
       </div>
       <div class="ctrl-item">
-        <kbd class="k-02">←</kbd><kbd class="k-02">→</kbd>
-        <span class="ctrl-desc" style="color:var(--neon-teal)">22.5° 回転</span>
-      </div>
-      <div class="ctrl-item">
-        <kbd class="k-02">SPACE</kbd>
-        <span class="ctrl-desc" style="color:var(--neon-teal)">レーザー発射</span>
-      </div>
-      <div class="ctrl-item">
-        <span class="ctrl-desc" style="color:rgba(29,233,182,.45);font-size:.85rem">※ 敵はレーザーで2体に分裂、時間経過で元サイズに戻る</span>
+        <kbd class="k-02">W</kbd><kbd class="k-02">A</kbd><kbd class="k-02">S</kbd><kbd class="k-02">D</kbd>
+        <span class="ctrl-desc" style="color:rgba(255,107,107,.6)">でも可</span>
       </div>
     </div>
 
+    <!-- Accordion -->
     <div class="accordion-wrap">
       <div class="accordion-item">
         <button class="accordion-btn ab-02" onclick="toggleAccordion(this)" aria-expanded="false">
@@ -1133,7 +1131,7 @@ footer p { font-family:'VT323',monospace; font-size:1rem; color:rgba(255,245,240
         <div class="accordion-body">
           <div class="accordion-inner">
             <p class="game-desc-inner">
-              宇宙の戦士として未知の惑星に降り立ち、物資の補給を行うミッション。惑星に生息する生物が行く手を阻むため、レーザー銃で排除しながら進む。ただし、この惑星は小さい。発射したレーザーは空間を一周し、気づけば自分自身に向かって戻ってくることがある。生物に触れるとゲームオーバー。しかし生物に、攻撃してくる意思はない。
+              サイバー空間を舞台にしたBOX集めゲーム。プレイヤーは限定された空間に散らばるBOXをすべて回収することが目標。エリア端の電流ラインや徘徊する敵ロボに当たるとダメージを受ける。エネルギーを補給しながら慎重に動き、BOXをすべて集めるとクリアゲートが開く。シンプルなルールの中に、判断力と立ち回りが問われる緊張感がある。
             </p>
           </div>
         </div>
@@ -1148,9 +1146,8 @@ footer p { font-family:'VT323',monospace; font-size:1rem; color:rgba(255,245,240
             <div class="dialog-box db-02">
               <div class="dialog-speaker ds-02">▷ NOMMY :</div>
               <p class="dialog-text">
-                惑星の生物は、こちらに敵意がない。ただそこにいるだけだ。<br><br>
-                それでも邪魔だからと攻撃する。ゲームだから、ミッションだから、そういうルールだから。でも撃ったレーザーは小さな惑星を一周して、いつか自分に返ってくる。<br><br>
-                因果応報、なのかもしれない。プレイしながら、そんなことをぼんやり考えてほしかった。ゲームって、問いを投げかけることもできると思っている。
+                簡単な操作入力を可能な限り少なくして、操作していくと、ゲームのルールとゴールがなんとなく理解していける。<br><br>
+                そんなのの一つの方向性として作ってみた。できているかな？
               </p>
               <span class="dialog-cursor dc-02"></span>
             </div>
@@ -1158,30 +1155,30 @@ footer p { font-family:'VT323',monospace; font-size:1rem; color:rgba(255,245,240
         </div>
       </div>
     </div>
-  </div><!-- /game-card 02 -->
+  </div><!-- /game-card 01 -->
 
-  <!-- ══════════ GAME 03: BAYWATCH ══════════ -->
+  <!-- ══════════ GAME 03: POLYGON STAR ══════════ -->
   <div class="game-card">
     <div class="gc-stripe gs-03"></div>
     <div class="gc-stage">
-      <div class="gc-left" style="background:linear-gradient(135deg,rgba(255,202,40,.06) 0%,transparent 70%)">
+      <div class="gc-left" style="background:linear-gradient(135deg,rgba(29,233,182,.06) 0%,transparent 70%)">
         <div>
           <div class="gc-num">STAGE — 03</div>
           <div class="gc-title-row">
-            <span class="gc-emoji">🌊</span>
-            <span class="gc-title gt-03">BAYWATCH</span>
+            <span class="gc-emoji">⭐</span>
+            <span class="gc-title gt-03">STARSHIP TROOPERS</span>
           </div>
           <div class="gc-tags">
-            <span class="gc-tag tt-03">ACTION</span>
-            <span class="gc-tag tt-03">RESCUE</span>
-            <span class="gc-tag tt-03">OCEAN</span>
+            <span class="gc-tag tt-03">3D</span>
+            <span class="gc-tag tt-03">VECTOR</span>
+            <span class="gc-tag tt-03">THREE.JS</span>
           </div>
         </div>
-        <a class="play-btn pb-03" href="baywatch.html" target="_blank">PLAY NOW</a>
+        <a class="play-btn pb-03" href="polygon_star_collision_fix.html" target="_blank">PLAY NOW</a>
       </div>
-      <!-- CSS Preview: Ocean -->
+      <!-- CSS Preview: 3D Polygon -->
       <div class="gc-preview">
-        <img src="screenshot_baywatch.png" alt="BAYWATCH screenshot">
+        <img src="screenshot_starship_final.png" alt="Starship Troopers screenshot">
       </div>
     </div>
 
@@ -1189,16 +1186,19 @@ footer p { font-family:'VT323',monospace; font-size:1rem; color:rgba(255,245,240
     <div class="gc-controls">
       <span class="ctrl-label">CONTROLS</span>
       <div class="ctrl-item">
-        <kbd class="k-03">↑</kbd>
-        <span class="ctrl-desc" style="color:var(--sky-gold)">前進</span>
+        <kbd class="k-03">↑</kbd><kbd class="k-03">↓</kbd>
+        <span class="ctrl-desc" style="color:var(--neon-teal)">前進 / 後退</span>
       </div>
       <div class="ctrl-item">
         <kbd class="k-03">←</kbd><kbd class="k-03">→</kbd>
-        <span class="ctrl-desc" style="color:var(--sky-gold)">方向転換</span>
+        <span class="ctrl-desc" style="color:var(--neon-teal)">22.5° 回転</span>
       </div>
       <div class="ctrl-item">
-        <kbd class="k-03">W</kbd><kbd class="k-03">A</kbd><kbd class="k-03">D</kbd>
-        <span class="ctrl-desc" style="color:rgba(255,202,40,.5)">でも可</span>
+        <kbd class="k-03">SPACE</kbd>
+        <span class="ctrl-desc" style="color:var(--neon-teal)">レーザー発射</span>
+      </div>
+      <div class="ctrl-item">
+        <span class="ctrl-desc" style="color:rgba(29,233,182,.45);font-size:.85rem">※ 敵はレーザーで2体に分裂、時間経過で元サイズに戻る</span>
       </div>
     </div>
 
@@ -1211,7 +1211,7 @@ footer p { font-family:'VT323',monospace; font-size:1rem; color:rgba(255,245,240
         <div class="accordion-body">
           <div class="accordion-inner">
             <p class="game-desc-inner">
-              物理演算による慣性と波の抵抗を体感しながら、溺れる人を救助するマリンアクション。プレイヤーが操るのはボート。救助に使うのはロープで引っ張る浮き輪だ。思い通りにならない船の動きと格闘しながら、制限時間内にすべての要救助者を助け出せ。「うまく近づけない」もどかしさこそが、このゲームの核心にある。
+              宇宙の戦士として未知の惑星に降り立ち、物資の補給を行うミッション。惑星に生息する生物が行く手を阻むため、レーザー銃で排除しながら進む。ただし、この惑星は小さい。発射したレーザーは空間を一周し、気づけば自分自身に向かって戻ってくることがある。生物に触れるとゲームオーバー。しかし生物に、攻撃してくる意思はない。
             </p>
           </div>
         </div>
@@ -1226,9 +1226,9 @@ footer p { font-family:'VT323',monospace; font-size:1rem; color:rgba(255,245,240
             <div class="dialog-box db-03">
               <div class="dialog-speaker ds-03">▷ NOMMY :</div>
               <p class="dialog-text">
-                物理演算は、作り手として本当に面白い。見た目の気持ちよさと、予測できない動きの面白さが同居している。昔からマリンスポーツが好きで、いつか海を題材にしたゲームを作りたいと思っていた。<br><br>
-                海で見るライフセーバーはヒーローそのものだ。あれはゲームになる、とずっと思っていた。実は昔、船舶免許を取ったことがある。その試験に人命救助の実技があって——これが難しかった。ボートをうまく救助者のそばに寄せられない。焦れば焦るほど遠ざかる。その「もどかしさ」を、物理演算でそのまま再現したのがこのゲームだ。<br><br>
-                ちなみに、ビキニの美少女とおっさんが同時に溺れていたらどちらを先に助けるか——そういうゲーム性も頭をよぎったが、それはまた別の話にしておこう。
+                惑星の生物は、こちらに敵意がない。ただそこにいるだけだ。<br><br>
+                それでも邪魔だからと攻撃する。ゲームだから、ミッションだから、そういうルールだから。でも撃ったレーザーは小さな惑星を一周して、いつか自分に返ってくる。<br><br>
+                因果応報、なのかもしれない。プレイしながら、そんなことをぼんやり考えてほしかった。ゲームって、問いを投げかけることもできると思っている。
               </p>
               <span class="dialog-cursor dc-03"></span>
             </div>
@@ -1236,7 +1236,91 @@ footer p { font-family:'VT323',monospace; font-size:1rem; color:rgba(255,245,240
         </div>
       </div>
     </div>
-  </div><!-- /game-card 03 -->
+  </div><!-- /game-card 02 -->
+
+  <!-- ══════════ GAME 04: 3D BLOCK BREAKER ══════════ -->
+  <div class="game-card">
+    <div class="gc-stripe" style="background:linear-gradient(90deg,#a29bfe,#ff4081,#1de9b6)"></div>
+    <div class="gc-stage">
+      <div class="gc-left" style="background:linear-gradient(135deg,rgba(162,155,254,.06) 0%,transparent 70%)">
+        <div>
+          <div class="gc-num">STAGE — 04</div>
+          <div class="gc-title-row">
+            <span class="gc-emoji">🎮</span>
+            <span class="gc-title" style="color:#a29bfe;text-shadow:0 0 20px rgba(162,155,254,.6)">3D BLOCK BREAKER</span>
+          </div>
+          <div class="gc-tags">
+            <span class="gc-tag" style="border:1px solid rgba(162,155,254,.5);color:#a29bfe">3D</span>
+            <span class="gc-tag" style="border:1px solid rgba(162,155,254,.5);color:#a29bfe">BLOCK</span>
+            <span class="gc-tag" style="border:1px solid rgba(162,155,254,.5);color:#a29bfe">BREAKER</span>
+          </div>
+        </div>
+        <a class="play-btn" href="blockbreaker3d.html" target="_blank" style="background:#a29bfe;box-shadow:0 0 20px rgba(162,155,254,.5),0 4px 12px rgba(0,0,0,.4)">PLAY NOW</a>
+      </div>
+      <div class="gc-preview">
+        <img src="screenshot_blockbreaker3d.png" alt="3D BLOCK BREAKER screenshot">
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="gc-controls">
+      <span class="ctrl-label">CONTROLS</span>
+      <div class="ctrl-item">
+        <kbd style="background:rgba(162,155,254,.18);border-color:rgba(162,155,254,.5);color:#a29bfe">←</kbd>
+        <kbd style="background:rgba(162,155,254,.18);border-color:rgba(162,155,254,.5);color:#a29bfe">→</kbd>
+        <span class="ctrl-desc" style="color:#a29bfe">パドル移動</span>
+      </div>
+      <div class="ctrl-item">
+        <kbd style="background:rgba(162,155,254,.18);border-color:rgba(162,155,254,.5);color:#a29bfe">🔴</kbd>
+        <span class="ctrl-desc" style="color:#a29bfe">SHRINK −20%</span>
+      </div>
+      <div class="ctrl-item">
+        <kbd style="background:rgba(162,155,254,.18);border-color:rgba(162,155,254,.5);color:#a29bfe">🔵</kbd>
+        <span class="ctrl-desc" style="color:#a29bfe">GROW +10%</span>
+      </div>
+      <div class="ctrl-item">
+        <span class="ctrl-desc" style="color:rgba(162,155,254,.5)">※ SPACE でゲームスタート</span>
+      </div>
+    </div>
+
+    <!-- Accordion -->
+    <div class="accordion-wrap">
+      <div class="accordion-item">
+        <button class="accordion-btn" onclick="toggleAccordion(this)" aria-expanded="false" style="color:#a29bfe">
+          <span>▸ ゲーム内容</span>
+          <span class="accordion-arrow">▼</span>
+        </button>
+        <div class="accordion-body">
+          <div class="accordion-inner">
+            <p class="game-desc-inner">
+              WebGLで描かれた奥行きのある3D空間を舞台に、立体的なブロック群を攻略する進化型ブロック崩しです。<br><br>
+              縦に積み重なったブロックなど立体的な配置の中、左右移動に合わせてパドルが傾斜し、その角度に応じてボールの反射角が変化します。🔴ボールでパドルが縮小、🔵ボールでパドルが拡大。ブロックは時間経過で位置を変え、ブロック数により移動タイミングも変化します。<br><br>
+              残り1個になるとカウントダウン開始、15秒以内に破壊できなければゲームオーバー。一定時間ブロックを消せないとボールが増殖し、逆転のチャンスも生まれます。
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="accordion-item">
+        <button class="accordion-btn" onclick="toggleAccordion(this)" aria-expanded="false" style="color:#a29bfe">
+          <span>▸ 作者の言葉</span>
+          <span class="accordion-arrow">▼</span>
+        </button>
+        <div class="accordion-body">
+          <div class="accordion-inner">
+            <div class="dialog-box" style="background:rgba(8,0,15,.85);border:2px solid #a29bfe;box-shadow:0 0 20px rgba(162,155,254,.1)">
+              <div class="dialog-speaker" style="color:#a29bfe">▷ NOMMY :</div>
+              <p class="dialog-text">
+                ブロック崩しというゲームの原点にオリジナリティを加味した習作。<br><br>
+                古典ゲームにオリジナリティを追加して、新しい楽しさを模索できないかと作ってみた。結果、まあ想定通りだがブロック崩しの「ボールを打ち返す面白さ」という核の部分に、味付けした程度である。<br><br>
+                結局、その本質（コア）をぼやかさず、いかに純粋に体験させるか——想定通りの「味付け」ではありますが、その手触りこそがクリエイターの楽しさではないかと思います。
+              </p>
+              <span class="dialog-cursor" style="background:#a29bfe"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div><!-- /game-card 04 -->
 
   <!-- COMING SOON -->
   <div class="sec-head"><span>// COMING SOON</span></div>
