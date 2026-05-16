@@ -7,7 +7,25 @@
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { background: #000010; overflow: hidden; font-family: 'Courier New', monospace; }
+
+  /* デスクトップ: キャンバス全画面 */
   #gameCanvas { display: block; width: 100vw; height: 100vh; }
+  #ctrl-panel { display: none; }
+
+  /* スマホ: 上60%ゲーム + 下40%コントロール */
+  @media (max-width: 768px) {
+    #gameCanvas { width: 100vw; height: 60vh; }
+    #ctrl-panel {
+      display: flex;
+      position: fixed; bottom: 0; left: 0; right: 0;
+      height: 40vh; min-height: 200px;
+      background: rgba(0,8,20,0.97);
+      border-top: 1px solid #00ffff33;
+      align-items: center; justify-content: center;
+      z-index: 20;
+      gap: 0;
+    }
+  }
 
   #ui {
     position: fixed; top: 0; left: 0; right: 0;
@@ -93,27 +111,70 @@
     color: rgba(0,255,255,0.35); font-size: 11px; pointer-events: none; z-index: 10;
     letter-spacing: 2px;
   }
+  @media (max-width: 768px) { #controls-hint { display: none; } }
   /* scanline effect */
   body::after {
     content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 999;
     background: repeating-linear-gradient(0deg, rgba(0,0,0,0.03) 0px, rgba(0,0,0,0.03) 1px, transparent 1px, transparent 2px);
   }
 
-  #dpad {
-    position: fixed; bottom: 30px; left: 30px;
-    width: 120px; height: 120px; z-index: 20; display: none;
+  /* ジョイスティック */
+  #joystick-area {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    height: 100%;
   }
-  #dpad button {
-    position: absolute; width: 36px; height: 36px;
-    background: rgba(0,255,255,0.1); border: 1px solid rgba(0,255,255,0.4);
-    border-radius: 4px; color: #00ffff; font-size: 16px; cursor: pointer;
-    pointer-events: all; display: flex; align-items: center; justify-content: center;
+  #joystick-base {
+    width: 130px; height: 130px; border-radius: 50%;
+    background: rgba(0,255,255,0.06);
+    border: 2px solid rgba(0,255,255,0.25);
+    position: relative;
+    box-shadow: 0 0 20px rgba(0,255,255,0.1), inset 0 0 20px rgba(0,0,0,0.5);
+    touch-action: none;
   }
-  #dpad #btn-up    { top: 0;   left: 42px; }
-  #dpad #btn-down  { bottom: 0; left: 42px; }
-  #dpad #btn-left  { top: 42px; left: 0; }
-  #dpad #btn-right { top: 42px; right: 0; }
-  @media (max-width: 768px) { #dpad { display: block; } }
+  #joystick-knob {
+    width: 52px; height: 52px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #00ffff, #0044aa);
+    border: 2px solid #00ffff;
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 16px #00ffff88;
+    pointer-events: none;
+    transition: box-shadow 0.1s;
+  }
+  /* 十字線 */
+  #joystick-base::before, #joystick-base::after {
+    content: ''; position: absolute; background: rgba(0,255,255,0.15);
+  }
+  #joystick-base::before { width: 1px; height: 100%; left: 50%; top: 0; }
+  #joystick-base::after  { width: 100%; height: 1px; top: 50%; left: 0; }
+
+  /* 右サイド: ダッシュボタンなど将来用スペース */
+  #ctrl-right {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    height: 100%; gap: 12px;
+  }
+  #ctrl-status {
+    color: #00ffff; font-size: 11px; letter-spacing: 2px;
+    opacity: 0.5; text-align: center;
+  }
+  /* ジョイスティック方向インジケータ */
+  #dir-indicator {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr 1fr;
+    gap: 3px; width: 66px; height: 66px;
+  }
+  .dir-cell {
+    border-radius: 3px;
+    background: rgba(0,255,255,0.08);
+    border: 1px solid rgba(0,255,255,0.15);
+    transition: background 0.1s, box-shadow 0.1s;
+  }
+  .dir-cell.active {
+    background: rgba(0,255,255,0.35);
+    box-shadow: 0 0 8px #00ffff88;
+  }
 </style>
 </head>
 <body>
@@ -132,11 +193,30 @@
 
 <div id="controls-hint">[ ARROW KEYS / WASD ] — MOVE UNIT</div>
 
-<div id="dpad">
-  <button id="btn-up">▲</button>
-  <button id="btn-down">▼</button>
-  <button id="btn-left">◀</button>
-  <button id="btn-right">▶</button>
+<!-- スマホ操作パネル -->
+<div id="ctrl-panel">
+  <!-- 左: ジョイスティック -->
+  <div id="joystick-area">
+    <div id="joystick-base">
+      <div id="joystick-knob"></div>
+    </div>
+  </div>
+
+  <!-- 右: ステータス + 方向インジケータ -->
+  <div id="ctrl-right">
+    <div id="dir-indicator">
+      <div class="dir-cell"></div>
+      <div class="dir-cell" id="dir-up"></div>
+      <div class="dir-cell"></div>
+      <div class="dir-cell" id="dir-left"></div>
+      <div class="dir-cell" id="dir-center"></div>
+      <div class="dir-cell" id="dir-right"></div>
+      <div class="dir-cell"></div>
+      <div class="dir-cell" id="dir-down"></div>
+      <div class="dir-cell"></div>
+    </div>
+    <div id="ctrl-status">UNIT CONTROL</div>
+  </div>
 </div>
 
 <div id="pickup-popup"></div>
@@ -158,6 +238,8 @@
 
 // ===== GLOBALS =====
 var keys = {}, mobileKeys = {};
+var joyX = 0, joyZ = 0;        // ジョイスティックアナログ入力 (-1〜1)
+var joyActive = false;          // タッチ中フラグ
 var gameState = 'title';
 var energy = 100, maxEnergy = 100;
 var totalItems = 0;
@@ -182,9 +264,9 @@ var camYaw = Math.PI;
 var camDist = 14, camHeight = 7;
 
 // Params
-var friction = 0.97;
+var friction = 0.88;
 var speed = 120;
-var maxSpeed = 30;
+var maxSpeed = 36;
 var gravity = -20;
 
 // ===== INIT =====
@@ -195,11 +277,11 @@ function init() {
   scene.background = new THREE.Color(0x000510);
   scene.fog = new THREE.FogExp2(0x000510, 0.018);
 
-  camera = new THREE.PerspectiveCamera(65, innerWidth / innerHeight, 0.1, 300);
+  camera = new THREE.PerspectiveCamera(65, 1, 0.1, 300); // aspect は onResize で更新
   camera.position.set(0, 10, 16);
 
   renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('gameCanvas'), antialias: true });
-  renderer.setSize(innerWidth, innerHeight);
+  // サイズは onResize() で設定
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
   renderer.shadowMap.enabled = true;
 
@@ -227,11 +309,17 @@ function init() {
   buildStage();
   animate();
 
-  window.addEventListener('resize', function() {
-    camera.aspect = innerWidth / innerHeight;
+  window.addEventListener('resize', onResize);
+  onResize();
+
+  function onResize() {
+    var canvas = document.getElementById('gameCanvas');
+    var w = canvas.clientWidth;
+    var h = canvas.clientHeight;
+    camera.aspect = w / h;
     camera.updateProjectionMatrix();
-    renderer.setSize(innerWidth, innerHeight);
-  });
+    renderer.setSize(w, h, false);
+  }
   document.getElementById('startBtn').addEventListener('click', startGame);
 }
 
@@ -730,17 +818,110 @@ function addBeacon(cx, cy, cz, color) {
 
 // ===== INPUT =====
 function setupInput() {
-  document.addEventListener('keydown', function(e) { keys[e.code] = true; e.preventDefault(); });
-  document.addEventListener('keyup',   function(e) { keys[e.code] = false; });
-  ['btn-up','btn-down','btn-left','btn-right'].forEach(function(id) {
-    var el = document.getElementById(id);
-    if (!el) return;
-    var dir = id.replace('btn-','');
-    el.addEventListener('touchstart', function(e) { e.preventDefault(); mobileKeys[dir] = true; }, { passive: false });
-    el.addEventListener('touchend',   function(e) { e.preventDefault(); mobileKeys[dir] = false; }, { passive: false });
-    el.addEventListener('mousedown', function() { mobileKeys[dir] = true; });
-    el.addEventListener('mouseup',   function() { mobileKeys[dir] = false; });
+  // キーボード
+  document.addEventListener('keydown', function(e) {
+    keys[e.code] = true;
+    if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].indexOf(e.code) >= 0) e.preventDefault();
   });
+  document.addEventListener('keyup', function(e) { keys[e.code] = false; });
+
+  // ジョイスティック
+  var base = document.getElementById('joystick-base');
+  var knob = document.getElementById('joystick-knob');
+  if (!base) return;
+
+  var baseR = 65;   // ベース半径
+  var knobR = 26;   // ノブ最大移動半径 (baseR - knobSize/2)
+  var touchId = null;
+  var baseRect;
+
+  function getCenter() {
+    baseRect = base.getBoundingClientRect();
+    return { x: baseRect.left + baseRect.width/2, y: baseRect.top + baseRect.height/2 };
+  }
+
+  function updateJoy(cx, cy, px, py) {
+    var dx = px - cx, dy = py - cy;
+    var dist = Math.sqrt(dx*dx + dy*dy);
+    var maxDist = baseR - 10;
+    var clampedDist = Math.min(dist, maxDist);
+    var angle = Math.atan2(dy, dx);
+    var nx = dist > 2 ? dx/dist : 0;
+    var ny = dist > 2 ? dy/dist : 0;
+    // ノブ位置
+    knob.style.left = (50 + nx * clampedDist / baseR * 100 * 0.72) + '%';
+    knob.style.top  = (50 + ny * clampedDist / baseR * 100 * 0.72) + '%';
+    // アナログ値 (-1〜1): x=左右, y=前後(画面Y→ゲームZ)
+    var power = Math.min(dist / maxDist, 1.0);
+    joyX = nx * power;
+    joyZ = ny * power;  // 画面Y下 → ゲームZ+ 方向
+    joyActive = dist > 5;
+    updateDirIndicator(joyX, joyZ);
+  }
+
+  function resetJoy() {
+    knob.style.left = '50%'; knob.style.top = '50%';
+    joyX = 0; joyZ = 0; joyActive = false; touchId = null;
+    updateDirIndicator(0, 0);
+  }
+
+  // Touch events
+  base.addEventListener('touchstart', function(e) {
+    e.preventDefault();
+    if (touchId !== null) return;
+    var touch = e.changedTouches[0];
+    touchId = touch.identifier;
+    var c = getCenter();
+    updateJoy(c.x, c.y, touch.clientX, touch.clientY);
+  }, { passive: false });
+
+  document.addEventListener('touchmove', function(e) {
+    if (touchId === null) return;
+    for (var i = 0; i < e.changedTouches.length; i++) {
+      if (e.changedTouches[i].identifier === touchId) {
+        e.preventDefault();
+        var c = getCenter();
+        updateJoy(c.x, c.y, e.changedTouches[i].clientX, e.changedTouches[i].clientY);
+        break;
+      }
+    }
+  }, { passive: false });
+
+  document.addEventListener('touchend', function(e) {
+    for (var i = 0; i < e.changedTouches.length; i++) {
+      if (e.changedTouches[i].identifier === touchId) { resetJoy(); break; }
+    }
+  });
+  document.addEventListener('touchcancel', resetJoy);
+
+  // マウスでもジョイスティック操作可（PC開発用）
+  var mouseDown = false;
+  base.addEventListener('mousedown', function(e) {
+    mouseDown = true;
+    var c = getCenter();
+    updateJoy(c.x, c.y, e.clientX, e.clientY);
+  });
+  document.addEventListener('mousemove', function(e) {
+    if (!mouseDown) return;
+    var c = getCenter();
+    updateJoy(c.x, c.y, e.clientX, e.clientY);
+  });
+  document.addEventListener('mouseup', function() { if (mouseDown) { mouseDown = false; resetJoy(); } });
+}
+
+function updateDirIndicator(jx, jz) {
+  var up    = document.getElementById('dir-up');
+  var down  = document.getElementById('dir-down');
+  var left  = document.getElementById('dir-left');
+  var right = document.getElementById('dir-right');
+  var center= document.getElementById('dir-center');
+  if (!up) return;
+  var threshold = 0.25;
+  up.classList.toggle('active',    jz < -threshold);
+  down.classList.toggle('active',  jz >  threshold);
+  left.classList.toggle('active',  jx < -threshold);
+  right.classList.toggle('active', jx >  threshold);
+  center.classList.toggle('active', Math.abs(jx) < threshold && Math.abs(jz) < threshold && joyActive);
 }
 
 function isKey(codes) {
@@ -891,21 +1072,30 @@ function animate() {
 function updateGame(dt, t) {
   // ── Input ──
   var fwd = 0, side = 0;
-  if (isKey(['ArrowUp','KeyW'])    || mobileKeys['up'])    fwd  =  1;
-  if (isKey(['ArrowDown','KeyS'])  || mobileKeys['down'])  fwd  = -1;
-  if (isKey(['ArrowLeft','KeyA'])  || mobileKeys['left'])  side = -1;
-  if (isKey(['ArrowRight','KeyD']) || mobileKeys['right']) side =  1;
+  if (isKey(['ArrowUp','KeyW']))    fwd  =  1;
+  if (isKey(['ArrowDown','KeyS']))  fwd  = -1;
+  if (isKey(['ArrowLeft','KeyA']))  side = -1;
+  if (isKey(['ArrowRight','KeyD'])) side =  1;
+
+  // ジョイスティック入力を統合（アナログ値をそのまま加算）
+  // ジョイスティック: joyX=左右, joyZ=前後(画面下=ゲーム前進)
+  // カメラ相対に変換: 画面上=前進(fwd+), 画面下=後退(fwd-)
+  fwd  += -joyZ;   // 画面Y下(joyZ+) → 後退
+  side +=  joyX;   // 画面X右(joyX+) → 右移動
+  // クランプ (-1〜1)
+  fwd  = Math.max(-1, Math.min(1, fwd));
+  side = Math.max(-1, Math.min(1, side));
 
   var moveX = Math.sin(camYaw) * (-fwd) + Math.cos(camYaw) * side;
   var moveZ = Math.cos(camYaw) * (-fwd) - Math.sin(camYaw) * side;
-  var moving = (moveX !== 0 || moveZ !== 0);
+  var moving = (Math.abs(moveX) > 0.01 || Math.abs(moveZ) > 0.01);
 
   if (moving) {
     vel.x += moveX * speed * dt;
     vel.z += moveZ * speed * dt;
     var curSpd = Math.sqrt(vel.x*vel.x + vel.z*vel.z);
     if (curSpd > maxSpeed) { vel.x = vel.x/curSpd*maxSpeed; vel.z = vel.z/curSpd*maxSpeed; }
-    energy -= 30 * dt;
+    energy -= 4 * dt;
   }
 
   vel.x *= Math.pow(friction, dt * 60);
@@ -1243,6 +1433,12 @@ function updateSparks(dt) {
 
 // ===== FLYING CONTAINERS PHYSICS =====
 function updateFlyingContainers(dt) {
+  // ステージ端の見えない壁（Y軸に高い当たり判定）
+  var WALL_X = 15.0;   // 自機バウンス境界と同じ
+  var WALL_Z = 12.0;
+  var WALL_H = 20.0;   // 壁の高さ（コンテナは絶対に超えられない）
+  var WALL_BOUNCE = 0.55; // 壁バウンス係数
+
   for (var i = flyingContainers.length - 1; i >= 0; i--) {
     var fc = flyingContainers[i];
     fc.vy -= 18 * dt; // 重力
@@ -1253,7 +1449,30 @@ function updateFlyingContainers(dt) {
     fc.obj.rotation.x += fc.wx * dt;
     fc.obj.rotation.y += fc.wy * dt;
     fc.obj.rotation.z += fc.wz * dt;
-    // 地面バウンス
+
+    // ── ステージ端の壁バウンス（高さに関係なく適用） ──
+    if (fc.obj.position.x < -WALL_X) {
+      fc.obj.position.x = -WALL_X;
+      fc.vx = Math.abs(fc.vx) * WALL_BOUNCE;
+      fc.wx *= 0.7;
+    }
+    if (fc.obj.position.x >  WALL_X) {
+      fc.obj.position.x =  WALL_X;
+      fc.vx = -Math.abs(fc.vx) * WALL_BOUNCE;
+      fc.wx *= 0.7;
+    }
+    if (fc.obj.position.z < -WALL_Z) {
+      fc.obj.position.z = -WALL_Z;
+      fc.vz = Math.abs(fc.vz) * WALL_BOUNCE;
+      fc.wz *= 0.7;
+    }
+    if (fc.obj.position.z >  WALL_Z) {
+      fc.obj.position.z =  WALL_Z;
+      fc.vz = -Math.abs(fc.vz) * WALL_BOUNCE;
+      fc.wz *= 0.7;
+    }
+
+    // ── 地面バウンス ──
     if (fc.obj.position.y <= 0) {
       fc.obj.position.y = 0;
       fc.vy *= -0.35;

@@ -2,15 +2,23 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>BAYWATCH</title>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
-body { background:#000; display:flex; justify-content:center; align-items:center; min-height:100vh; }
-#gc { position:relative; width:600px; font-family:monospace; }
-canvas { display:block; }
+body { background:#000; display:flex; flex-direction:column; justify-content:center; align-items:center; min-height:100vh; touch-action:none; }
+#gc { position:relative; width:100%; max-width:600px; font-family:monospace; }
+canvas { display:block; width:100%; height:auto; }
 #ui { position:absolute; top:8px; left:8px; color:#fff; font-size:13px; text-shadow:1px 1px 2px #000; pointer-events:none; line-height:1.8; }
 #ctrl { position:absolute; bottom:8px; left:50%; transform:translateX(-50%); color:rgba(255,255,255,0.7); font-size:11px; pointer-events:none; }
 #msg { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:#fff; font-size:20px; font-weight:bold; text-shadow:2px 2px 6px #000,0 0 20px #ff0; pointer-events:none; opacity:0; transition:opacity 0.2s; text-align:center; white-space:pre-line; }
+#pad { display:none; width:100%; max-width:600px; height:100px; background:#111; position:relative; touch-action:none; user-select:none; }
+#btn-left  { position:absolute; left:8%;  top:50%; transform:translateY(-50%); width:76px; height:76px; border-radius:50%; background:rgba(255,255,255,0.12); border:2px solid rgba(255,255,255,0.3); display:flex; align-items:center; justify-content:center; font-size:30px; color:rgba(255,255,255,0.7); }
+#btn-right { position:absolute; left:calc(8% + 88px); top:50%; transform:translateY(-50%); width:76px; height:76px; border-radius:50%; background:rgba(255,255,255,0.12); border:2px solid rgba(255,255,255,0.3); display:flex; align-items:center; justify-content:center; font-size:30px; color:rgba(255,255,255,0.7); }
+#btn-up    { position:absolute; right:8%; top:50%; transform:translateY(-50%); width:76px; height:76px; border-radius:50%; background:rgba(255,100,50,0.25); border:2px solid rgba(255,100,50,0.5); display:flex; align-items:center; justify-content:center; font-size:30px; color:rgba(255,200,150,0.9); }
+.btn-active { background:rgba(255,255,255,0.30) !important; border-color:rgba(255,255,255,0.8) !important; }
+#btn-up.btn-active { background:rgba(255,100,50,0.60) !important; border-color:rgba(255,150,80,0.95) !important; }
+@media (pointer: coarse) { #pad { display:block; } #ctrl { display:none; } }
 </style>
 </head>
 <body>
@@ -25,11 +33,39 @@ canvas { display:block; }
   <div id="msg"></div>
   <div id="ctrl">↑ 前進 | ← → 方向転換</div>
 </div>
+<div id="pad">
+  <div id="btn-left">◀</div>
+  <div id="btn-right">▶</div>
+  <div id="btn-up">▲</div>
+</div>
 <script>
 var cv=document.getElementById('c'),ctx=cv.getContext('2d'),W=600,H=480;
 var keys={};
 document.addEventListener('keydown',function(e){keys[e.key]=true;e.preventDefault();});
 document.addEventListener('keyup',function(e){keys[e.key]=false;});
+
+// バーチャルパッド タッチ操作
+(function(){
+  var btns = {
+    'btn-left':  'ArrowLeft',
+    'btn-right': 'ArrowRight',
+    'btn-up':    'ArrowUp'
+  };
+  Object.keys(btns).forEach(function(id){
+    var el = document.getElementById(id);
+    var key = btns[id];
+    if (!el) return;
+    function on(e){ e.preventDefault(); keys[key]=true; el.classList.add('btn-active'); }
+    function off(e){ e.preventDefault(); keys[key]=false; el.classList.remove('btn-active'); }
+    el.addEventListener('touchstart', on, {passive:false});
+    el.addEventListener('touchend',   off, {passive:false});
+    el.addEventListener('touchcancel',off, {passive:false});
+    // マウスでもデバッグ可能に
+    el.addEventListener('mousedown', on);
+    el.addEventListener('mouseup',   off);
+    el.addEventListener('mouseleave',off);
+  });
+})();
 var cam={x:W/2,y:H/2};
 var jet={x:W/2,y:H/2,angle:-Math.PI/2,speed:0,maxSpeed:4,accel:0.15,friction:0.97,turnSpeed:0.045*3*0.7};
 var RS=11,SL=14,RT=0.6,RR=36;
