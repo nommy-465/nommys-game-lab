@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>3D BLOCK BREAKER</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #000; overflow: hidden; font-family: 'Courier New', monospace; touch-action: none; -webkit-overflow-scrolling: none; }
+#canvas { display: block; }
+#ui {
+  position: fixed; top: 0; left: 0; width: 100%; pointer-events: none;
+  display: flex; justify-content: space-between; align-items: flex-start;
+  padding: 18px 28px;
+}
+.stat { color: #00ffcc; font-size: 13px; letter-spacing: 3px; text-transform: uppercase; }
+.val  { font-size: 28px; font-weight: bold; color: #fff; line-height: 1; }
+#msg {
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
+  color: #fff; font-size: 22px; letter-spacing: 4px; text-align: center;
+  text-shadow: 0 0 20px #00ffcc; white-space: pre; display: none;
+}
+
+</style>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+<div id="ui">
+  <div><div class="stat">SCORE</div><div class="val" id="scoreVal">0</div></div>
+  <div style="text-align:center"><div class="stat">STAGE</div><div class="val" id="stageVal">1</div></div>
+  <div style="text-align:right"><div class="stat">BLOCKS</div><div class="val" id="blocksVal">50</div></div>
+</div>
+<div id="msg"></div>
+<div id="lastBlockTimer" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-120px);
+  font-family:'Courier New',monospace;font-size:56px;font-weight:bold;color:#ff3300;
+  text-shadow:0 0 30px #ff0000,0 0 60px #ff0000;letter-spacing:4px;
+  display:none;pointer-events:none;">15</div>
+</div>
+
+<div id="lastBlockTimer" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-200%);font-size:72px;font-weight:bold;color:#ff2200;text-shadow:0 0 30px #ff4400,0 0 60px #ff0000;font-family:monospace;pointer-events:none;z-index:100;"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// --- CONSTANTS -------------------------------------------------------
+var FIELD_W = 25, FIELD_D = 30;
+var BLOCK_SIZE = 2.0;
+var BS = BLOCK_SIZE * 0.88;
+var GRID_COLS = 10, GRID_ROWS = 10;
+var BLOCK_ZONE_Z_START = -14;
+var LAYER_Y = [0.5, 0.5 + BS, 0.5 + BS * 2];
+var BLOCK_COLORS = [0xff3366,0xff6633,0xffcc00,0x33ff99,0x00ccff,0x9933ff,0xff33cc,0x00ff66];
+
+//            Z     
+// row=9     : BLOCK_ZONE_Z_START + 9 * BLOCK_SIZE * 1.1
+var BLOCK_FRONT_Z = BLOCK_ZONE_Z_START + (GRID_ROWS - 1) * BLOCK_SIZE * 1.1;
+//             BLOCK_SIZE * 2.5   
+var PADDLE_Z = BLOCK_FRONT_Z + BLOCK_SIZE * 2.5 * 4;
+
+var BALL_R = 0.55 * 0.5;   //
+var BALL_SPEED = 0.25;
+
+// --- RENDERER / SCENE / CAMERA ---------------------------------------
+var canvas = document.getElementById('canvas');
+var W = window.innerWidth, H = window.innerHeight;
+var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+renderer.setSize(W, H);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+
+var scene = new THREE.Scene();
+scene.background = new THREE.Color(0x050510);
+scene.fog = new THREE.Fog(0x050510, 70, 130);
+
+var camera = new THREE.PerspectiveCamera(60, W / H, 0.1, 300);
+//        (         )            
+var FIELD_CENTER_Z = (BLOCK_ZONE_Z_START + PADDLE_Z) / 2;
+var FIELD_DEPTH = PADDLE_Z - BLOCK_ZONE_Z_START;
+camera.position.set(0, FIELD_DEPTH * 0.70, PADDLE_Z + FIELD_DEPTH * 0.30);
+camera.lookAt(0, 0, FIELD_CENTER_Z);
+
+// --- LIGHTS ----------------------------------------------------------
+scene.add(new THREE.AmbientLight(0x223344, 0.8));
+var dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+dirLight.position.set(10, 30, 20); dirLight.castShadow = true;
+scene.add(dirLight);
+var pointLight1 = new THREE.PointLight(0x00ffcc, 2.5, 80);
+pointLight1.position.set(-15, 20, 10); scene.add(pointLight1);
+var pLight2 = new THREE.PointLight(0xff4488, 2.0, 80);
+pLight2.position.set(15, 15, -10); scene.add(pLight2);
+var pLight3 = new THREE.PointLight(0x4488ff, 1.8, 80);
+pLight3.position.set(0, 18, 0); scene.add(pLight3);
+
+//                
+var lightTargets = [
+  { x: -15, y: 20, z: 10 },
+  { x:  15, y: 15, z: -10 },
+  { x:   0, y: 18, z:  0 }
+];
+var lightTimers = [0, 0, 0];
+var LIGHT_MOVE_SPEED = 0.006;  // slow random movement     (         )
+
+function updateLights() {
+  var lights = [pointLight1, pLight2, pLight3];
+  for (var i = 0; i < lights.length; i++) {
+    lightTimers[i] -= 1/60;
+    if (lightTimers[i] <= 0) {
+      lightTimers[i] = 4.0 + Math.random() * 6.0;
+      lightTargets[i].x = (Math.random() - 0.5) * FIELD_W * 0.9;
+      lightTargets[i].y = 10 + Math.random() * 18;
+      lightTargets[i].z = BLOCK_ZONE_Z_START + Math.random() * (PADDLE_Z - BLOCK_ZONE_Z_START);
+    }
+    lights[i].position.x += (lightTargets[i].x - lights[i].position.x) * LIGHT_MOVE_SPEED;
+    lights[i].position.y += (lightTargets[i].y - lights[i].position.y) * LIGHT_MOVE_SPEED;
+    lights[i].position.z += (lightTargets[i].z - lights[i].position.z) * LIGHT_MOVE_SPEED;
+  }
+}
+
+// --- FIELD -----------------------------------------------------------
+var WALL_Z_CENTER = (BLOCK_ZONE_Z_START - FIELD_D/2 + PADDLE_Z + 4) / 2;
+var WALL_LEN = PADDLE_Z + 5 - (-FIELD_D/2);
+
+function makeWall(w, h, d, x, y, z, color) {
+  var mesh = new THREE.Mesh(
+    new THREE.BoxGeometry(w, h, d),
+    new THREE.MeshStandardMaterial({ color: color, transparent: true, opacity: 0.25, roughness: 0.3, metalness: 0.7 })
+  );
+  mesh.position.set(x, y, z); scene.add(mesh);
+}
+makeWall(0.4, 10, WALL_LEN, -FIELD_W/2, 3, WALL_Z_CENTER, 0x334466);
+makeWall(0.4, 10, WALL_LEN,  FIELD_W/2, 3, WALL_Z_CENTER, 0x334466);
+makeWall(FIELD_W, 10, 0.4, 0, 3, -FIELD_D/2, 0x334466);
+// --- Floor ---
+var floorGeo = new THREE.PlaneGeometry(FIELD_W, WALL_LEN, 1, 1);
+floorGeo.rotateX(-Math.PI / 2);
+var floorMat = new THREE.MeshStandardMaterial({ color: 0x080c18, roughness: 0.55, metalness: 0.35 });
+var floorMesh = new THREE.Mesh(floorGeo, floorMat);
+floorMesh.position.set(0, -0.52, WALL_Z_CENTER);
+floorMesh.receiveShadow = true;
+scene.add(floorMesh);
+
+function updateDiscoFloor(time) {}
+
+// --- BLOCK SYSTEM ----------------------------------------------------
+var stacks, allBlocks;
+var score = 0;
+var stage = 1;
+var STAGE_BASE_BLOCKS = 10;  //
+function getStageBlockCount() {
+  return Math.min(STAGE_BASE_BLOCKS * Math.pow(2, stage - 1), 100);
+}
+
+function makeMesh(color) {
+  var VS = BS * 0.70;  //
+  var geo = new THREE.BoxGeometry(VS, VS, VS);
+  var mat = new THREE.MeshStandardMaterial({
+    color: color, roughness: 0.2, metalness: 0.6,
+    emissive: color, emissiveIntensity: 0.12
+  });
+  var mesh = new THREE.Mesh(geo, mat);
+  mesh.add(new THREE.LineSegments(
+    new THREE.EdgesGeometry(geo),
+    new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.35 })
+  ));
+  mesh.castShadow = true; mesh.receiveShadow = true;
+  return mesh;
+}
+
+function gridToWorld(col, row) {
+  return {
+    x: -(GRID_COLS-1)*BLOCK_SIZE/2 + col*BLOCK_SIZE,
+    z: BLOCK_ZONE_Z_START + row*BLOCK_SIZE*1.1
+  };
+}
+
+function createBlocks() {
+  if (allBlocks) allBlocks.forEach(function(b){ scene.remove(b.mesh); });
+  allBlocks = []; stacks = [];
+  for (var c=0;c<GRID_COLS;c++){ stacks[c]=[];for(var r=0;r<GRID_ROWS;r++) stacks[c][r]=[]; }
+
+  var pos=[];
+  for(var c=0;c<GRID_COLS;c++) for(var r=0;r<GRID_ROWS;r++) pos.push([c,r]);
+  for(var i=pos.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=pos[i];pos[i]=pos[j];pos[j]=t; }
+
+  var stageBlocks = getStageBlockCount();
+  pos.slice(0, stageBlocks).forEach(function(cr){
+    var col=cr[0],row=cr[1];
+    var rnd=Math.random(); var h=rnd<0.50?1:rnd<0.85?2:3;
+    var wp=gridToWorld(col,row);
+    for(var layer=0;layer<h;layer++){
+      var color=BLOCK_COLORS[Math.floor(Math.random()*BLOCK_COLORS.length)];
+      var mesh=makeMesh(color);
+      var y=LAYER_Y[layer];
+      mesh.position.set(wp.x,y,wp.z);
+      scene.add(mesh);
+      var block={ mesh:mesh,col:col,row:row,layer:layer,alive:true,
+        hitting:false,hitProgress:0,hitRotAxis:new THREE.Vector3(),startPos:new THREE.Vector3(wp.x,y,wp.z),
+        falling:false,fallProgress:0,fallFromY:0,fallToY:0,
+        sliding:false,slideProgress:0,slideFromX:0,slideFromZ:0,slideToX:0,slideToZ:0 };
+      stacks[col][row].push(block); allBlocks.push(block);
+    }
+  });
+  updateBlockCount();
+}
+
+function updateBlockCount() {
+  var n=0; for(var i=0;i<allBlocks.length;i++) if(allBlocks[i].alive) n++;
+  document.getElementById('blocksVal').textContent = n;
+  //
+  if (n === 1 && lastBlockCountdown < 0) {
+    lastBlockCountdown = LAST_BLOCK_TIME;
+    document.getElementById('lastBlockTimer').style.display = 'block';
+  } else if (n !== 1) {
+    lastBlockCountdown = -1;
+    document.getElementById('lastBlockTimer').style.display = 'none';
+  }
+  return n;
+}
+
+createBlocks();
+
+// --- PADDLE (   ) -------------------------------------------------
+var paddleW = 5, paddleH = 0.4, paddleD = 1.2;
+var PADDLE_MIN_W = 1.0, PADDLE_MAX_W = 14.0;
+var paddleTiltX = 0;
+
+var paddleGroup = new THREE.Group();
+paddleGroup.position.set(0, 0.2, PADDLE_Z);
+var paddleCurrentZ = PADDLE_Z;  //
+scene.add(paddleGroup);
+
+var paddleMesh = new THREE.Mesh(
+  new THREE.BoxGeometry(1, paddleH, paddleD),
+  new THREE.MeshStandardMaterial({ color: 0x00ccff, roughness: 0.1, metalness: 0.9, emissive: 0x003344, emissiveIntensity: 0.6 })
+);
+paddleMesh.scale.x = paddleW;
+paddleGroup.add(paddleMesh);
+paddleGroup.add((function(){ var l=new THREE.PointLight(0x00ccff,2,10); l.position.set(0,0.3,0); return l; })());
+
+function getPaddleHalfW() { return paddleW / 2; }
+function setPaddleWidth(w) {
+  paddleW = Math.max(PADDLE_MIN_W, Math.min(PADDLE_MAX_W, w));
+  paddleMesh.scale.x = paddleW;
+}
+
+function getPaddleSlopeNormal(localX) {
+  //             Z      (     )
+  return { nx: 0, nz: 1 };
+}
+
+// --- BALL POOL --------------------------------------------------------
+//      : 'normal', 'red', 'blue'
+//       : pos, vel, mesh, lightMesh, alive, type
+// 'red'/'blue'         (      ,          )
+var balls = [];
+
+function makeBallMesh(color, emissive) {
+  var geo = new THREE.SphereGeometry(BALL_R, 14, 14);
+  var mat = new THREE.MeshStandardMaterial({ color: color, roughness: 0, metalness: 0.8, emissive: emissive||color, emissiveIntensity: 0.7 });
+  var mesh = new THREE.Mesh(geo, mat);
+  mesh.castShadow = true;
+  var lColor = color;
+  var pLight = new THREE.PointLight(lColor, 2.5, 4);
+  mesh.add(pLight);
+  scene.add(mesh);
+  return mesh;
+}
+
+//       ( )
+function spawnMainBall(px, pz, vx, vz, isChild) {
+  var mesh = makeBallMesh(0xffffff, 0xffffff);
+  var b = {
+    pos: new THREE.Vector3(px, BALL_R, pz),
+    vel: new THREE.Vector3(vx, 0, vz),
+    mesh: mesh,
+    alive: true,
+    type: 'normal',
+    isChild: isChild || false,
+    graceTimer: 0,   //
+    trail: [], trailGeo: new THREE.BufferGeometry()
+  };
+  var tLine = new THREE.Line(b.trailGeo, new THREE.LineBasicMaterial({ color: 0x88ddff, transparent: true, opacity: 0.35 }));
+  scene.add(tLine);
+  b.trailLine = tLine;
+  normBallVel(b);
+  balls.push(b);
+  return b;
+}
+
+//        (  or  ):     ,        ,          
+function spawnItemBall(px, pz, vx, vz, type) {
+  var color = type === 'red' ? 0xff2222 : 0x2266ff;
+  var mesh = makeBallMesh(color, color);
+  //      
+  mesh.material.emissiveIntensity = 1.0;
+  var b = {
+    pos: new THREE.Vector3(px, BALL_R, pz),
+    vel: new THREE.Vector3(vx, 0, vz),
+    mesh: mesh,
+    alive: true,
+    type: type  // 'red' or 'blue'
+  };
+  balls.push(b);
+  return b;
+}
+
+function normBallVel(b) {
+  if (Math.abs(b.vel.x) < 0.01) b.vel.x = 0.04;
+  var spd = Math.sqrt(b.vel.x*b.vel.x + b.vel.z*b.vel.z);
+  b.vel.x = b.vel.x/spd * BALL_SPEED;
+  b.vel.z = b.vel.z/spd * BALL_SPEED;
+}
+
+//          
+spawnMainBall(0, PADDLE_Z - 2, 0.12, -0.22);
+
+// --- ITEM BALL SPAWN (       ) --------------------------------
+//   : 20% red, 20% blue, 60%      4            
+var ITEM_PROB_RED = 0.20, ITEM_PROB_BLUE = 0.20;
+
+function spawnBallsFromBlock(bx, bz) {
+  // 4         : 5%  
+  if (Math.random() < 0.05) {
+    var dirs = [[0,1],[0,-1]];
+    for (var d=0; d<dirs.length; d++) {
+      var vx = dirs[d][0] * BALL_SPEED;
+      var vz = dirs[d][1] * BALL_SPEED;
+      spawnMainBall(bx, bz, vx, vz, true);  //
+    }
+  }
+  //        
+  var rnd = Math.random();
+  if (rnd < ITEM_PROB_RED) {
+    spawnItemBall(bx, bz, (Math.random()-0.5)*0.2, 0.18, 'red');
+  } else if (rnd < ITEM_PROB_RED + ITEM_PROB_BLUE) {
+    spawnItemBall(bx, bz, (Math.random()-0.5)*0.2, 0.18, 'blue');
+  }
+}
+
+// --- INPUT ------------------------------------------------------------
+var keys = {};
+
+//
+var PADDLE_ADVANCE_SPEED = 0.03;   //
+var PADDLE_MIN_Z = BLOCK_ZONE_Z_START + BLOCK_SIZE * 3;  //
+
+function advancePaddle() {
+  //
+  //
+  var aliveCount = 0;
+  for (var ai=0; ai<allBlocks.length; ai++) if (allBlocks[ai].alive) aliveCount++;
+  //
+  var totalBlocks = getStageBlockCount();
+  var speed;
+  if (aliveCount >= 8) {
+    var t = (totalBlocks - aliveCount) / Math.max(1, totalBlocks - 8);
+    t = Math.max(0, Math.min(1, t));
+    speed = PADDLE_ADVANCE_SPEED * Math.pow(32.0, t);
+  } else {
+    var t2 = (8 - aliveCount) / (8 - 2);
+    t2 = Math.max(0, Math.min(1, t2));
+    speed = PADDLE_ADVANCE_SPEED * (32.0 * Math.pow(60.0 / 32.0, t2));
+  }
+  var newZ = paddleCurrentZ - speed;
+  if (newZ < PADDLE_MIN_Z) newZ = PADDLE_MIN_Z;
+  paddleCurrentZ = newZ;
+  paddleGroup.position.z = paddleCurrentZ;
+}
+
+
+//
+var GRACE_DURATION = 0.6;  //
+var launchParticles = [];  //
+
+function spawnLaunchBall(px, pz, vx, vz) {
+  var b = spawnMainBall(px, pz, vx, vz, false);
+  b.graceTimer = GRACE_DURATION;  //
+  b.mesh.material.color.setHex(0xffaa00);   //
+  b.mesh.material.emissive.setHex(0xff6600);
+  b.mesh.material.emissiveIntensity = 1.0;
+  b.trailLine.material.color.setHex(0xff8800);
+
+  //
+  for (var i=0; i<12; i++) {
+    var angle = (i / 12) * Math.PI * 2;
+    var pGeo = new THREE.SphereGeometry(BALL_R * 0.4, 6, 6);
+    var pMat = new THREE.MeshBasicMaterial({ color: 0xffcc00, transparent: true, opacity: 1.0, depthWrite: false });
+    var pMesh = new THREE.Mesh(pGeo, pMat);
+    pMesh.renderOrder = 999;
+    pMesh.position.set(px, BALL_R, pz);
+    scene.add(pMesh);
+    launchParticles.push({
+      mesh: pMesh,
+      vx: Math.cos(angle) * 0.18,
+      vz: Math.sin(angle) * 0.18,
+      life: 1.0
+    });
+  }
+  //
+  var ringGeo = new THREE.RingGeometry(0.1, BS * 0.8, 24);
+  ringGeo.rotateX(-Math.PI / 2);
+  var ringMat = new THREE.MeshBasicMaterial({ color: 0xffff00, transparent: true, opacity: 0.9, side: THREE.DoubleSide, depthWrite: false });
+  var ring = new THREE.Mesh(ringGeo, ringMat);
+  ring.position.set(px, BALL_R, pz);
+  ring.renderOrder = 999;
+  scene.add(ring);
+  launchParticles.push({ mesh: ring, vx: 0, vz: 0, life: 1.0, isRing: true, scale: 1.0 });
+
+  return b;
+}
+
+function updateLaunchParticles() {
+  for (var i = launchParticles.length - 1; i >= 0; i--) {
+    var p = launchParticles[i];
+    p.life -= 0.04;
+    var op = Math.max(0, p.life);
+    if (p.isRing) {
+      p.scale += 0.18;
+      p.mesh.scale.set(p.scale, 1, p.scale);
+      p.mesh.material.opacity = op;
+    } else {
+      p.mesh.position.x += p.vx;
+      p.mesh.position.z += p.vz;
+      p.vx *= 0.88; p.vz *= 0.88;
+      p.mesh.material.opacity = op;
+    }
+    if (p.life <= 0) {
+      scene.remove(p.mesh);
+      p.mesh.geometry.dispose();
+      p.mesh.material.dispose();
+      launchParticles.splice(i, 1);
+    }
+  }
+}
+
+//
+var BLOCK_MOVE_INTERVAL = 2.0 + Math.random() * 8.0;
+var blockMoveTimer = 0.0;
+var MOVE_DIRS = [[1,0],[-1,0],[0,1],[0,-1]];
+
+function moveAllBlocks() {
+  var used = {};
+  var cells = [];
+  for (var c=0; c<GRID_COLS; c++)
+    for (var r=0; r<GRID_ROWS; r++)
+      cells.push([c, r]);
+  cells.sort(function(){ return Math.random()-0.5; });
+
+  var newStacks = [];
+  for (var c=0; c<GRID_COLS; c++) {
+    newStacks[c] = [];
+    for (var r=0; r<GRID_ROWS; r++)
+      newStacks[c][r] = stacks[c][r].slice();
+  }
+
+  for (var i=0; i<cells.length; i++) {
+    var c = cells[i][0], r = cells[i][1];
+    var srcKey = c + '_' + r;
+    if (used[srcKey]) continue;
+    var stack = newStacks[c][r];
+    if (stack.length === 0) continue;
+    var hasAlive = false;
+    for (var j=0; j<stack.length; j++) if (stack[j].alive && !stack[j].hitting) { hasAlive=true; break; }
+    if (!hasAlive) continue;
+
+    var aliveCount = 0;
+    for (var ai=0; ai<allBlocks.length; ai++) if (allBlocks[ai].alive) aliveCount++;
+    var forwardBias;
+    if (aliveCount <= 5) {
+      forwardBias = 0.99;
+    } else {
+      var base = 0.25 + (1.0 - aliveCount / Math.max(1, getStageBlockCount())) * 0.55;
+      forwardBias = Math.min(base * 3.0, 0.97);
+    }
+    var otherW = (1.0 - forwardBias) / 3.0;
+    var weightedDirs = [
+      { d: [1,0],  w: otherW },
+      { d: [-1,0], w: otherW },
+      { d: [0,1],  w: forwardBias },
+      { d: [0,-1], w: otherW }
+    ];
+    var dirs = [];
+    var pool = weightedDirs.slice();
+    while (pool.length > 0) {
+      var total = 0;
+      for (var wi=0; wi<pool.length; wi++) total += pool[wi].w;
+      var rnd2 = Math.random() * total;
+      var acc = 0;
+      var picked = false;
+      for (var wi=0; wi<pool.length; wi++) {
+        acc += pool[wi].w;
+        if (rnd2 <= acc || wi === pool.length - 1) {
+          dirs.push(pool[wi].d);
+          pool.splice(wi, 1);
+          picked = true;
+          break;
+        }
+      }
+      if (!picked) { dirs.push(pool[0].d); pool.splice(0, 1); }
+    }
+    var moved = false;
+    for (var d=0; d<dirs.length; d++) {
+      var nc = c + dirs[d][0];
+      var nr = r + dirs[d][1];
+      if (nc < 0 || nc >= GRID_COLS || nr < 0 || nr >= GRID_ROWS) continue;
+      var dstKey = nc + '_' + nr;
+      if (newStacks[nc][nr].length === 0 && !used[dstKey]) {
+        var wp = gridToWorld(nc, nr);
+        for (var j=0; j<stack.length; j++) {
+          var b = stack[j];
+          b.col = nc; b.row = nr;
+          b.sliding = true;
+          b.slideProgress = 0;
+          b.slideFromX = b.mesh.position.x;
+          b.slideFromZ = b.mesh.position.z;
+          b.slideToX = wp.x;
+          b.slideToZ = wp.z;
+        }
+        newStacks[nc][nr] = stack;
+        newStacks[c][r] = [];
+        used[srcKey] = true;
+        used[dstKey] = true;
+        moved = true;
+        break;
+      }
+    }
+  }
+
+  for (var c=0; c<GRID_COLS; c++)
+    for (var r=0; r<GRID_ROWS; r++)
+      stacks[c][r] = newStacks[c][r];
+}
+var gameState = 'playing';
+var lastBlockTimer = -1;   //
+var LAST_BLOCK_TIME = 15.0;
+var lastBlockCountdown = -1;   //
+var LAST_BLOCK_TIME = 15.0;    //
+var noHitTimer = 0.0;       //
+var NO_HIT_LIMIT = 5.0;     //
+document.addEventListener('keydown', function(e) {
+  keys[e.key] = true;
+  if (e.key==='ArrowLeft'||e.key==='ArrowRight') e.preventDefault();
+  if (e.key==='r'||e.key==='R') {
+    if (gameState==='miss'||gameState==='gameover') retryGame();
+  }
+});
+document.addEventListener('keyup', function(e) { keys[e.key]=false; });
+
+// --- Touch Controls: 画面左半分=左移動、右半分=右移動 ---
+function getTouchSide(e) {
+  var x = e.touches.length > 0 ? e.touches[0].clientX : e.changedTouches[0].clientX;
+  return x < window.innerWidth / 2 ? 'left' : 'right';
+}
+
+document.addEventListener('touchstart', function(e) {
+  e.preventDefault();
+  var side = getTouchSide(e);
+  keys['ArrowLeft']  = (side === 'left');
+  keys['ArrowRight'] = (side === 'right');
+}, {passive: false});
+
+document.addEventListener('touchmove', function(e) {
+  e.preventDefault();
+  var side = getTouchSide(e);
+  keys['ArrowLeft']  = (side === 'left');
+  keys['ArrowRight'] = (side === 'right');
+}, {passive: false});
+
+document.addEventListener('touchend', function(e) {
+  e.preventDefault();
+  keys['ArrowLeft']  = false;
+  keys['ArrowRight'] = false;
+  // ゲームオーバー・ミス時はタップでリトライ
+  if (gameState === 'miss' || gameState === 'gameover') retryGame();
+}, {passive: false});
+
+document.addEventListener('touchcancel', function(e) {
+  keys['ArrowLeft']  = false;
+  keys['ArrowRight'] = false;
+}, {passive: false});
+
+var PADDLE_SPEED = 0.30;
+
+// --- COLLISION HELPERS ------------------------------------------------
+function getBottomBlock(col, row) {
+  var stack=stacks[col][row], best=null;
+  for(var i=0;i<stack.length;i++){
+    var b=stack[i];
+    if(b.alive&&!b.hitting) if(best===null||b.layer<best.layer) best=b;
+  }
+  return best;
+}
+
+function hitBlock(b, col, row, isChild) {
+  b.alive=false; b.hitting=true; b.hitProgress=0;
+  b.hitRotAxis.set(Math.random()-0.5,Math.random()-0.5,Math.random()-0.5).normalize();
+  b.startPos.copy(b.mesh.position);
+  var bx=b.mesh.position.x, bz=b.mesh.position.z;
+  var stack=stacks[col][row]; var idx=stack.indexOf(b);
+  if(idx!==-1) stack.splice(idx,1);
+  for(var i=0;i<stack.length;i++){
+    var u=stack[i]; if(!u.alive||u.hitting) continue;
+    var nl=i, ny=LAYER_Y[nl];
+    if(Math.abs(u.mesh.position.y-ny)>0.05){ u.falling=true;u.fallProgress=0;u.fallFromY=u.mesh.position.y;u.fallToY=ny; }
+    u.layer=nl;
+  }
+  if (!isChild) spawnBallsFromBlock(bx, bz);  //
+}
+
+// --- UPDATE NORMAL BALL -----------------------------------------------
+function updateNormalBall(b) {
+  if (!b.alive) return;
+  b.pos.x += b.vel.x;
+  b.pos.z += b.vel.z;
+
+  var WALL_X = FIELD_W/2 - BALL_R;
+  if (b.pos.x >  WALL_X){ b.pos.x= WALL_X; b.vel.x=-Math.abs(b.vel.x); }
+  if (b.pos.x < -WALL_X){ b.pos.x=-WALL_X; b.vel.x= Math.abs(b.vel.x); }
+  if (b.pos.z < -FIELD_D/2+BALL_R){ b.pos.z=-FIELD_D/2+BALL_R; b.vel.z=Math.abs(b.vel.z); }
+
+  //      (Y            )
+  var localX = b.pos.x - paddleGroup.position.x;
+  var pdz = Math.abs(b.pos.z - paddleCurrentZ);
+  var phw = getPaddleHalfW();
+  if (pdz < paddleD/2 + BALL_R + 0.08 && Math.abs(localX) < phw + 0.2 && b.vel.z > 0 && b.graceTimer <= 0) {
+    //     Y           
+    //     paddleTiltX:  =   (      )  =   (      )
+    var angle = paddleTiltX;  //
+    //            (XZ  ):      (0, 0, -1),Y      (-sin, 0, -cos)
+    var nx = -Math.sin(angle);
+    var nz = -Math.cos(angle);
+    //             : v' = v - 2(v n)n
+    var dot = b.vel.x * nx + b.vel.z * nz;
+    b.vel.x = b.vel.x - 2 * dot * nx;
+    b.vel.z = b.vel.z - 2 * dot * nz;
+    //    (         )
+    b.vel.x += localX * 0.04;
+    if (b.vel.z > 0) b.vel.z = -Math.abs(b.vel.z);
+    normBallVel(b);
+    b.pos.z = paddleCurrentZ - paddleD/2 - BALL_R - 0.05;
+    noHitTimer = 0;  //
+  }
+
+  //    
+  if (b.pos.z > paddleCurrentZ + paddleD/2 + 4) { removeBall(b); return; }
+
+  //
+  var HALF=BS/2;
+  for(var c=0;c<GRID_COLS;c++){
+    for(var r=0;r<GRID_ROWS;r++){
+      var blk=getBottomBlock(c,r); if(!blk) continue;
+      var bp=blk.mesh.position;
+      var dx=Math.abs(b.pos.x-bp.x), dz=Math.abs(b.pos.z-bp.z), dy=Math.abs(b.pos.y-bp.y);
+      if(dx<HALF+BALL_R && dz<HALF+BALL_R && dy<HALF+BALL_R && b.graceTimer<=0){
+        var ox=HALF+BALL_R-dx, oz=HALF+BALL_R-dz;
+        if(ox<oz){ b.vel.x*=-1; b.pos.x+=b.vel.x>0?ox:-ox; }
+        else      { b.vel.z*=-1; b.pos.z+=b.vel.z>0?oz:-oz; }
+        hitBlock(blk,c,r, b.isChild);
+        noHitTimer = 0;  //
+        score+=10; document.getElementById('scoreVal').textContent=score;
+        if(updateBlockCount()===0){
+          gameState='clear';
+          showMsg('STAGE ' + stage + ' CLEAR !');
+          setTimeout(function(){ nextStage(); }, 2000);
+        }
+        return;
+      }
+    }
+  }
+
+  b.mesh.position.set(b.pos.x, BALL_R, b.pos.z);
+
+  //
+  if (b.graceTimer > 0) {
+    b.graceTimer -= 1/60;
+    var blink = Math.sin(b.graceTimer * 40) > 0;
+    b.mesh.material.opacity = blink ? 1.0 : 0.3;
+    b.mesh.material.transparent = true;
+    if (b.graceTimer <= 0) {
+      //
+      b.mesh.material.color.setHex(0xffffff);
+      b.mesh.material.emissive.setHex(0xffffff);
+      b.mesh.material.emissiveIntensity = 0.6;
+      b.mesh.material.opacity = 1.0;
+    }
+  }
+
+  //     
+  if (b.trail) {
+    b.trail.push(new THREE.Vector3(b.pos.x, BALL_R, b.pos.z));
+    if(b.trail.length>10) b.trail.shift();
+    if(b.trail.length>=2) b.trailGeo.setFromPoints(b.trail);
+  }
+}
+
+// --- UPDATE ITEM BALL -------------------------------------------------
+var ITEM_GRAVITY = 0.008;
+function updateItemBall(b) {
+  if (!b.alive) return;
+  //   
+  b.vel.z += ITEM_GRAVITY;
+  b.pos.x += b.vel.x;
+  b.pos.z += b.vel.z;
+
+  var WALL_X = FIELD_W/2 - BALL_R;
+  if(b.pos.x> WALL_X){ b.pos.x= WALL_X; b.vel.x=-Math.abs(b.vel.x); }
+  if(b.pos.x<-WALL_X){ b.pos.x=-WALL_X; b.vel.x= Math.abs(b.vel.x); }
+
+  //        
+  var pdx=Math.abs(b.pos.x - paddleGroup.position.x);
+  var pdz=Math.abs(b.pos.z - paddleCurrentZ);
+  var phw=getPaddleHalfW();
+  if(pdz < paddleD/2+BALL_R+0.2 && pdx < phw+0.2){
+    if(b.type==='red'){
+      setPaddleWidth(paddleW * 0.80);  //
+    } else {
+      setPaddleWidth(paddleW * 1.10);  //
+    }
+    removeBall(b); return;
+  }
+
+  //    
+  if(b.pos.z > paddleCurrentZ + 8) { removeBall(b); return; }
+
+  b.mesh.position.set(b.pos.x, BALL_R, b.pos.z);
+
+  //
+  if (b.graceTimer > 0) {
+    b.graceTimer -= 1/60;
+    var blink = Math.sin(b.graceTimer * 40) > 0;
+    b.mesh.material.opacity = blink ? 1.0 : 0.3;
+    b.mesh.material.transparent = true;
+    if (b.graceTimer <= 0) {
+      //
+      b.mesh.material.color.setHex(0xffffff);
+      b.mesh.material.emissive.setHex(0xffffff);
+      b.mesh.material.emissiveIntensity = 0.6;
+      b.mesh.material.opacity = 1.0;
+    }
+  }
+}
+
+function removeBall(b) {
+  b.alive = false;
+  scene.remove(b.mesh);
+  if(b.trailLine) scene.remove(b.trailLine);
+}
+
+// --- UPDATE ALL -------------------------------------------------------
+function update() {
+  if(gameState!=='playing') return;
+
+  //           2                 
+  //
+  noHitTimer += 1/60;
+  if (noHitTimer >= NO_HIT_LIMIT) {
+    noHitTimer = 0;
+    var aliveBlocks = [];
+    for (var ai=0; ai<allBlocks.length; ai++)
+      if (allBlocks[ai].alive && !allBlocks[ai].hitting) aliveBlocks.push(allBlocks[ai]);
+    if (aliveBlocks.length > 0) {
+      var src = aliveBlocks[Math.floor(Math.random() * aliveBlocks.length)];
+      var vx = (Math.random() - 0.5) * 0.15;
+      var vz = BALL_SPEED;
+      spawnLaunchBall(src.mesh.position.x, src.mesh.position.z, vx, vz);
+    }
+  }
+
+  //
+  if (lastBlockCountdown >= 0) {
+    lastBlockCountdown -= 1/60;
+    var secs = Math.ceil(lastBlockCountdown);
+    var el = document.getElementById('lastBlockTimer');
+    el.textContent = secs;
+    //
+    if (lastBlockCountdown <= 10) {
+      el.style.color = Math.floor(frame/8)%2 === 0 ? '#ff2200' : '#ffaa00';
+    }
+    if (lastBlockCountdown <= 0) {
+      gameState = 'gameover';
+      lastBlockCountdown = -1;
+      document.getElementById('lastBlockTimer').style.display = 'none';
+      showMsg('TIME OVER\n\nPress R to Retry');
+    }
+  }
+
+  //
+  if (lastBlockTimer >= 0) {
+    lastBlockTimer -= 1/60;
+    var disp = Math.max(0, Math.ceil(lastBlockTimer));
+    document.getElementById('lastBlockTimer').textContent = disp;
+    //
+    var el = document.getElementById('lastBlockTimer');
+    if (lastBlockTimer <= 10) {
+      el.style.opacity = Math.sin(lastBlockTimer * 8) * 0.5 + 0.5;
+      el.style.color = '#ff0000';
+    } else {
+      el.style.opacity = 1.0;
+      el.style.color = '#ff3300';
+    }
+    if (lastBlockTimer <= 0) {
+      lastBlockTimer = -1;
+      document.getElementById('lastBlockTimer').style.display = 'none';
+      gameState = 'gameover';
+      showMsg('TIME OVER\n\nPress R to Retry');
+      return;
+    }
+  }
+
+  var GAMEOVER_Z = paddleCurrentZ - BLOCK_SIZE * 2;
+  for (var gi=0; gi<allBlocks.length; gi++) {
+    var gb = allBlocks[gi];
+    if (gb.alive && !gb.hitting && gb.mesh.position.z >= GAMEOVER_Z) {
+      gameState = 'gameover';
+      showMsg('GAME OVER\n\nPress R to Retry');
+      return;
+    }
+  }
+
+  //           
+  blockMoveTimer += 1/60;
+  if (blockMoveTimer >= BLOCK_MOVE_INTERVAL) {
+    blockMoveTimer = 0;
+    //                      
+    //
+    var aliveNow = 0;
+    for (var ai=0; ai<allBlocks.length; ai++) if (allBlocks[ai].alive) aliveNow++;
+    if (aliveNow <= 5) {
+      BLOCK_MOVE_INTERVAL = 0.5 + Math.random() * 0.5;  //
+    } else {
+      //
+      var speedT = 1.0 - aliveNow / Math.max(1, getStageBlockCount());
+      BLOCK_MOVE_INTERVAL = 2.0 - speedT * 1.2 + Math.random() * 0.4;
+    }
+    moveAllBlocks();
+  }
+
+  //       +   
+  var phw=getPaddleHalfW();
+  var maxX=FIELD_W/2 - phw;
+  var tiltTarget = 0;
+  if(keys['ArrowLeft']){
+    paddleGroup.position.x=Math.max(-maxX, paddleGroup.position.x-PADDLE_SPEED);
+    tiltTarget = 0.50;
+  }
+  if(keys['ArrowRight']){
+    paddleGroup.position.x=Math.min( maxX, paddleGroup.position.x+PADDLE_SPEED);
+    tiltTarget = -0.50;
+  }
+
+  //          (Y   )
+  paddleTiltX += (tiltTarget - paddleTiltX) * 0.15;
+  paddleGroup.rotation.y = paddleTiltX;
+
+  //       
+  var activeBalls = balls.filter(function(b){ return b.alive; });
+  for(var i=0;i<activeBalls.length;i++){
+    var b=activeBalls[i];
+    if(b.type==='normal') updateNormalBall(b);
+    else updateItemBall(b);
+  }
+
+  //              0    
+  var normalAlive=0;
+  for(var i=0;i<balls.length;i++) if(balls[i].alive&&balls[i].type==='normal') normalAlive++;
+  if(normalAlive===0 && gameState==='playing'){
+    gameState='miss'; showMsg('MISS...\n\nPress R to Retry');
+  }
+
+  //          (        )
+  balls = balls.filter(function(b){ return b.alive; });
+}
+
+// --- BLOCK ANIMATIONS -------------------------------------------------
+function updateBlockAnimations() {
+  for(var i=0;i<allBlocks.length;i++){
+    var b=allBlocks[i];
+
+    // -          (        )
+    if (b.sliding && !b.hitting) {
+      b.slideProgress += 0.06;
+      var st = Math.min(b.slideProgress, 1.0);
+      // easeInOut
+      var ease = st < 0.5 ? 2*st*st : -1+(4-2*st)*st;
+      b.mesh.position.x = b.slideFromX + (b.slideToX - b.slideFromX) * ease;
+      b.mesh.position.z = b.slideFromZ + (b.slideToZ - b.slideFromZ) * ease;
+      if (st >= 1.0) {
+        b.mesh.position.x = b.slideToX;
+        b.mesh.position.z = b.slideToZ;
+        b.sliding = false;
+      }
+    }
+    if(b.hitting){
+      b.hitProgress+=0.028; var t=b.hitProgress;
+      b.mesh.rotation.set(b.hitRotAxis.x*t*Math.PI*3,b.hitRotAxis.y*t*Math.PI*3,b.hitRotAxis.z*t*Math.PI*3);
+      b.mesh.position.set(b.startPos.x,b.startPos.y+Math.sin(t*Math.PI)*2.5-t*2.5,b.startPos.z-t*10);
+      b.mesh.material.opacity=Math.max(0,1-t*1.1); b.mesh.material.transparent=true;
+      if(t>=1.3){ b.hitting=false; b.mesh.visible=false; }
+    }
+    if(b.falling&&!b.hitting){
+      b.fallProgress+=0.07; var ft=Math.min(b.fallProgress,1.0);
+      b.mesh.position.y=b.fallFromY+(b.fallToY-b.fallFromY)*ft*ft*ft;
+      if(ft>=1.0){ b.mesh.position.y=b.fallToY; b.falling=false; }
+    }
+  }
+}
+
+// --- MISC -------------------------------------------------------------
+function showMsg(txt){ var el=document.getElementById('msg'); el.textContent=txt; el.style.display='block'; }
+
+function nextStage(){
+  stage++;
+  document.getElementById('stageVal').textContent = stage;
+  gameState='playing';
+  document.getElementById('msg').style.display='none';
+  balls.forEach(function(b){ scene.remove(b.mesh); if(b.trailLine) scene.remove(b.trailLine); });
+  balls=[];
+  spawnMainBall(0, PADDLE_Z-2, 0.12, -0.22);
+  paddleGroup.position.x=0;
+  paddleGroup.position.z=PADDLE_Z;
+  paddleCurrentZ=PADDLE_Z;
+  paddleGroup.rotation.y=0;
+  paddleTiltX=0;
+  setPaddleWidth(5);
+  blockMoveTimer=0;
+  BLOCK_MOVE_INTERVAL=2.0+Math.random()*8.0;
+  noHitTimer=0;
+  lastBlockCountdown=-1;
+  document.getElementById('lastBlockTimer').style.display='none';
+  lastBlockCountdown=-1;
+  document.getElementById('lastBlockTimer').style.display='none';
+  createBlocks();
+}
+
+function retryGame(){
+  gameState='playing';
+  document.getElementById('msg').style.display='none';
+  //       
+  balls.forEach(function(b){ scene.remove(b.mesh); if(b.trailLine) scene.remove(b.trailLine); });
+  balls=[];
+  spawnMainBall(0, paddleCurrentZ-2, 0.12, -0.22);
+  paddleGroup.position.x=0;
+  paddleGroup.position.z=PADDLE_Z;
+  paddleCurrentZ=PADDLE_Z;
+  paddleGroup.rotation.y=0;
+  paddleTiltX=0;
+  setPaddleWidth(5);
+  stage=1;
+  document.getElementById('stageVal').textContent=1;
+  score=0; document.getElementById('scoreVal').textContent=0;
+  blockMoveTimer=0;
+  BLOCK_MOVE_INTERVAL=2.0+Math.random()*8.0;
+  noHitTimer=0;
+  lastBlockTimer=-1;
+  document.getElementById('lastBlockTimer').style.display='none';
+  createBlocks();
+}
+
+// --- RENDER LOOP ------------------------------------------------------
+var frame=0;
+function animate(){
+  requestAnimationFrame(animate); frame++;
+  update();
+  updateBlockAnimations();
+  camera.position.x=Math.sin(frame*0.002)*0.4;
+  camera.lookAt(0, 0, FIELD_CENTER_Z);
+  pointLight1.intensity=2+Math.sin(frame*0.05)*0.5;
+  updateLights();
+  updateDiscoFloor(frame * 0.016);
+  updateLaunchParticles();
+  renderer.render(scene,camera);
+}
+animate();
+
+window.addEventListener('resize',function(){
+  var nW=window.innerWidth,nH=window.innerHeight;
+  canvas.width=nW; canvas.height=nH;
+  camera.aspect=nW/nH; camera.updateProjectionMatrix(); renderer.setSize(nW,nH);
+});
+</script>
+</body>
+</html>
