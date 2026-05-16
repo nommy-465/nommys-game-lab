@@ -2,10 +2,13 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <title>3D BLOCK BREAKER</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { background: #000; overflow: hidden; font-family: 'Courier New', monospace; }
+body { background: #000; overflow: hidden; font-family: 'Courier New', monospace; touch-action: none; -webkit-overflow-scrolling: none; }
 #canvas { display: block; }
 #ui {
   position: fixed; top: 0; left: 0; width: 100%; pointer-events: none;
@@ -19,10 +22,7 @@ body { background: #000; overflow: hidden; font-family: 'Courier New', monospace
   color: #fff; font-size: 22px; letter-spacing: 4px; text-align: center;
   text-shadow: 0 0 20px #00ffcc; white-space: pre; display: none;
 }
-#paddleInfo {
-  position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);
-  color: #aaa; font-size: 11px; letter-spacing: 2px; pointer-events: none;
-}
+
 </style>
 </head>
 <body>
@@ -37,7 +37,8 @@ body { background: #000; overflow: hidden; font-family: 'Courier New', monospace
   font-family:'Courier New',monospace;font-size:56px;font-weight:bold;color:#ff3300;
   text-shadow:0 0 30px #ff0000,0 0 60px #ff0000;letter-spacing:4px;
   display:none;pointer-events:none;">15</div>
-<div id="paddleInfo">← → MOVE &nbsp;|&nbsp; 🔴 SHRINK -20% &nbsp;|&nbsp; 🔵 GROW +10%</div>
+</div>
+
 <div id="lastBlockTimer" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-200%);font-size:72px;font-weight:bold;color:#ff2200;text-shadow:0 0 30px #ff4400,0 0 60px #ff0000;font-family:monospace;pointer-events:none;z-index:100;"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -547,6 +548,39 @@ document.addEventListener('keydown', function(e) {
 });
 document.addEventListener('keyup', function(e) { keys[e.key]=false; });
 
+// --- Touch Controls: 画面左半分=左移動、右半分=右移動 ---
+function getTouchSide(e) {
+  var x = e.touches.length > 0 ? e.touches[0].clientX : e.changedTouches[0].clientX;
+  return x < window.innerWidth / 2 ? 'left' : 'right';
+}
+
+document.addEventListener('touchstart', function(e) {
+  e.preventDefault();
+  var side = getTouchSide(e);
+  keys['ArrowLeft']  = (side === 'left');
+  keys['ArrowRight'] = (side === 'right');
+}, {passive: false});
+
+document.addEventListener('touchmove', function(e) {
+  e.preventDefault();
+  var side = getTouchSide(e);
+  keys['ArrowLeft']  = (side === 'left');
+  keys['ArrowRight'] = (side === 'right');
+}, {passive: false});
+
+document.addEventListener('touchend', function(e) {
+  e.preventDefault();
+  keys['ArrowLeft']  = false;
+  keys['ArrowRight'] = false;
+  // ゲームオーバー・ミス時はタップでリトライ
+  if (gameState === 'miss' || gameState === 'gameover') retryGame();
+}, {passive: false});
+
+document.addEventListener('touchcancel', function(e) {
+  keys['ArrowLeft']  = false;
+  keys['ArrowRight'] = false;
+}, {passive: false});
+
 var PADDLE_SPEED = 0.30;
 
 // --- COLLISION HELPERS ------------------------------------------------
@@ -815,6 +849,7 @@ function update() {
     paddleGroup.position.x=Math.min( maxX, paddleGroup.position.x+PADDLE_SPEED);
     tiltTarget = -0.50;
   }
+
   //          (Y   )
   paddleTiltX += (tiltTarget - paddleTiltX) * 0.15;
   paddleGroup.rotation.y = paddleTiltX;
@@ -941,6 +976,7 @@ animate();
 
 window.addEventListener('resize',function(){
   var nW=window.innerWidth,nH=window.innerHeight;
+  canvas.width=nW; canvas.height=nH;
   camera.aspect=nW/nH; camera.updateProjectionMatrix(); renderer.setSize(nW,nH);
 });
 </script>
