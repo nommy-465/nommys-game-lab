@@ -44,6 +44,132 @@ var keys={};
 document.addEventListener('keydown',function(e){keys[e.key]=true;e.preventDefault();});
 document.addEventListener('keyup',function(e){keys[e.key]=false;});
 
+// ---- SEサウンド (Web Audio API プロシージャル生成) ----
+var AC = null;
+function getAC(){
+  if(!AC){ try{ AC=new(window.AudioContext||window.webkitAudioContext)(); }catch(e){} }
+  return AC;
+}
+// ユーザー操作でAudioContextをunlockするため最初のキー/タッチで初期化
+function unlockAudio(){ getAC(); }
+document.addEventListener('keydown', unlockAudio, {once:true});
+document.addEventListener('touchstart', unlockAudio, {once:true});
+
+// 共通: ゲイン付きノードを作ってdestinationに繋ぐ
+function makeGain(vol){
+  var ac=getAC(); if(!ac)return null;
+  var g=ac.createGain(); g.gain.value=vol; g.connect(ac.destination); return g;
+}
+
+// エンジン音（ループノイズ）: 前進中に鳴らす
+var engineNode=null, engineGain=null;
+function startEngine(){
+  if(engineNode||!getAC())return;
+  var ac=getAC();
+  var buf=ac.createBuffer(1,ac.sampleRate*0.5,ac.sampleRate);
+  var d=buf.getChannelData(0);
+  for(var i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*0.35;
+  engineNode=ac.createBufferSource(); engineNode.buffer=buf; engineNode.loop=true;
+  // バンドパスフィルターで水面のエンジン音っぽく
+  var bp=ac.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=180; bp.Q.value=1.5;
+  engineGain=makeGain(0);
+  engineNode.connect(bp); bp.connect(engineGain);
+  engineNode.start();
+}
+function updateEngineSound(speed, maxSpeed){
+  if(!getAC())return;
+  startEngine();
+  if(!engineGain)return;
+  var vol=speed>0.3?(speed/maxSpeed)*0.18:0;
+  engineGain.gain.setTargetAtTime(vol, getAC().currentTime, 0.1);
+}
+
+// 水しぶき音: 短いホワイトノイズバースト
+function seWater(){
+  var ac=getAC(); if(!ac)return;
+  var dur=0.18, sr=ac.sampleRate;
+  var buf=ac.createBuffer(1,sr*dur,sr), d=buf.getChannelData(0);
+  for(var i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*(1-i/(d.length))*0.6;
+  var src=ac.createBufferSource(); src.buffer=buf;
+  var lp=ac.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=900;
+  var g=makeGain(0.25); src.connect(lp); lp.connect(g); src.start(); 
+  setTimeout(function(){try{g.disconnect();}catch(e){}},400);
+}
+
+// 救助音: 明るいアルペジオ
+function seRescue(){
+  var ac=getAC(); if(!ac)return;
+  [523,659,784,1047].forEach(function(freq,i){
+    setTimeout(function(){
+      var o=ac.createOscillator(), g=makeGain(0);
+      o.type='sine'; o.frequency.value=freq;
+      o.connect(g); o.start();
+      g.gain.setValueAtTime(0,ac.currentTime);
+      g.gain.linearRampToValueAtTime(0.18,ac.currentTime+0.01);
+      g.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+0.3);
+      o.stop(ac.currentTime+0.31);
+      setTimeout(function(){try{g.disconnect();}catch(e){}},400);
+    }, i*70);
+  });
+}
+
+// 天使音: 上昇するグリッサンド＋リバーブ風
+function seAngel(){
+  var ac=getAC(); if(!ac)return;
+  var o=ac.createOscillator(), g=makeGain(0.15);
+  o.type='sine'; o.frequency.setValueAtTime(400,ac.currentTime);
+  o.frequency.exponentialRampToValueAtTime(1200,ac.currentTime+1.2);
+  var rev=ac.createDelay(); rev.delayTime.value=0.08;
+  var revG=ac.createGain(); revG.gain.value=0.35;
+  o.connect(g); o.connect(rev); rev.connect(revG); revG.connect(ac.destination);
+  g.gain.setValueAtTime(0.15,ac.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+1.2);
+  o.start(); o.stop(ac.currentTime+1.21);
+  setTimeout(function(){try{g.disconnect();revG.disconnect();}catch(e){}},1500);
+}
+
+// タイムアップ警告音: 低い警告ブザー
+function seWarn(){
+  var ac=getAC(); if(!ac)return;
+  [0,0.15].forEach(function(t){
+    var o=ac.createOscillator(),g=makeGain(0.2);
+    o.type='square'; o.frequency.value=220;
+    o.connect(g); o.start(ac.currentTime+t); o.stop(ac.currentTime+t+0.1);
+    setTimeout(function(){try{g.disconnect();}catch(e){}},500);
+  });
+}
+
+// ミッションクリア: 勝利ファンファーレ
+function seClear(){
+  var ac=getAC(); if(!ac)return;
+  var notes=[[523,0],[659,0.15],[784,0.3],[1047,0.5],[1047,0.65],[1319,0.8]];
+  notes.forEach(function(nf){
+    var o=ac.createOscillator(),g=makeGain(0);
+    o.type='triangle'; o.frequency.value=nf[0];
+    o.connect(g); o.start(ac.currentTime+nf[1]); o.stop(ac.currentTime+nf[1]+0.25);
+    g.gain.setValueAtTime(0,ac.currentTime+nf[1]);
+    g.gain.linearRampToValueAtTime(0.2,ac.currentTime+nf[1]+0.02);
+    g.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+nf[1]+0.25);
+    setTimeout(function(){try{g.disconnect();}catch(e){}},1500);
+  });
+}
+
+// SOS叫び声風: 短い変調ノイズ
+function seSOSAlert(){
+  var ac=getAC(); if(!ac)return;
+  var o=ac.createOscillator(),g=makeGain(0.08);
+  o.type='sawtooth'; o.frequency.value=600;
+  var lfo=ac.createOscillator(),lfoG=ac.createGain();
+  lfo.frequency.value=8; lfoG.gain.value=80;
+  lfo.connect(lfoG); lfoG.connect(o.frequency);
+  o.connect(g); lfo.start(); o.start(); o.stop(ac.currentTime+0.25); lfo.stop(ac.currentTime+0.25);
+  g.gain.setValueAtTime(0.08,ac.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+0.25);
+  setTimeout(function(){try{g.disconnect();lfoG.disconnect();}catch(e){}},500);
+}
+
+// ---- SEサウンドここまで ----
+
 // バーチャルパッド タッチ操作
 (function(){
   var btns = {
@@ -276,6 +402,7 @@ function checkRescue(){
       v.rescued=true;v.rescueAnim=60;score++;
       document.getElementById('sc').textContent='救助: '+score;
       spawnThanks(v.x,v.y);
+      seRescue(); seWater();
       checkClear();
     }
   });
@@ -287,6 +414,7 @@ function checkClear(){
     go=true;
     var ac=victims.filter(function(v){return v.angel;}).length;
     setTimeout(function(){
+      seClear();
       showMsg(ac===0?'全員救助！\nパーフェクト！ \uD83C\uDFC6':'ミッションクリア！ \uD83C\uDF89\n天使: '+ac+'人\n救助: '+score+'人',180);
       setTimeout(function(){spawnV();},3000);
     },400);
@@ -299,10 +427,17 @@ function updateTimers(){
     if(v.rescued||v.angel)return;
     // 溺れている人の波紋（ランダム間隔60〜120フレーム）
     v.vrt--;
-    if(v.vrt<=0){spawnR(v.x,v.y,'victim');v.vrt=60+Math.floor(Math.random()*60);}
+    if(v.vrt<=0){
+      spawnR(v.x,v.y,'victim');
+      v.vrt=60+Math.floor(Math.random()*60);
+      // 低確率でSOS叫び声（全員分鳴ると多すぎるので確率制限）
+      if(Math.random()<0.15) seSOSAlert();
+    }
     v.timer--;
+    if(v.timer===10*60) seWarn(); // 残り10秒警告
     if(v.timer<=0){
       v.angel=true;v.angelAnim=0;aC++;
+      seAngel();
       document.getElementById('an').textContent='天使: '+aC;
       showMsg('天使になった... \uD83D\uDC7C',60);
       checkClear();
@@ -324,11 +459,16 @@ function updatePhysics(){
 }
 
 function updateJet(){
+  var wasMoving = jet.speed > 0.5;
   if(keys['ArrowUp']||keys['w'])jet.speed=Math.min(jet.maxSpeed,jet.speed+jet.accel);else jet.speed*=jet.friction;
   if(keys['ArrowLeft']||keys['a'])jet.angle-=jet.turnSpeed*(0.3+jet.speed/jet.maxSpeed*0.7);
   if(keys['ArrowRight']||keys['d'])jet.angle+=jet.turnSpeed*(0.3+jet.speed/jet.maxSpeed*0.7);
   jet.x+=Math.cos(jet.angle)*jet.speed;jet.y+=Math.sin(jet.angle)*jet.speed;
   cam.x=jet.x;cam.y=jet.y;
+  // エンジン音
+  updateEngineSound(jet.speed, jet.maxSpeed);
+  // 加速開始時に水しぶき
+  if(!wasMoving && jet.speed>0.5) seWater();
   if(jet.speed>0.5){jrt--;if(jrt<=0){spawnR(jet.x,jet.y,'jet');jrt=Math.max(6,Math.round(JB-jet.speed*1.5));}}else jrt=0;
   var tail=nodes[RS],fsx=tail.x-(tail._px||tail.x),fsy=tail.y-(tail._py||tail.y);
   tail._px=tail.x;tail._py=tail.y;var fs=Math.sqrt(fsx*fsx+fsy*fsy);

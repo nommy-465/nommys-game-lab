@@ -532,6 +532,96 @@ function moveAllBlocks() {
     for (var r=0; r<GRID_ROWS; r++)
       stacks[c][r] = newStacks[c][r];
 }
+
+// --- SE Sound System (Web Audio API) ---
+var audioCtx = null;
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function playTone(freq, type, duration, vol, freqEnd) {
+  try {
+    var ctx = getAudioCtx();
+    var osc = ctx.createOscillator();
+    var gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = type || 'sine';
+    osc.frequency.setValueAtTime(freq, ctx.currentTime);
+    if (freqEnd !== undefined) {
+      osc.frequency.exponentialRampToValueAtTime(freqEnd, ctx.currentTime + duration);
+    }
+    gain.gain.setValueAtTime(vol || 0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + duration);
+  } catch(e) {}
+}
+
+function playNoise(duration, vol) {
+  try {
+    var ctx = getAudioCtx();
+    var bufSize = ctx.sampleRate * duration;
+    var buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+    var data = buf.getChannelData(0);
+    for (var i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1);
+    var src = ctx.createBufferSource();
+    src.buffer = buf;
+    var gain = ctx.createGain();
+    src.connect(gain);
+    gain.connect(ctx.destination);
+    gain.gain.setValueAtTime(vol || 0.15, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+    src.start(ctx.currentTime);
+  } catch(e) {}
+}
+
+// SE定義
+function seBlockHit() {
+  // ブロック破壊：短いクランチ音
+  playTone(180, 'square', 0.08, 0.18, 80);
+  playNoise(0.06, 0.10);
+}
+function sePaddleHit() {
+  // パドル反射：明るいピン
+  playTone(520, 'sine', 0.10, 0.22, 380);
+}
+function seItemRed() {
+  // 赤ボール取得：不吉な下降音
+  playTone(320, 'sawtooth', 0.25, 0.20, 80);
+}
+function seItemBlue() {
+  // 青ボール取得：上昇音
+  playTone(400, 'sine', 0.20, 0.20, 800);
+}
+function seLaunchBall() {
+  // 強制発射：警告音
+  playTone(220, 'sawtooth', 0.15, 0.25, 440);
+  setTimeout(function(){ playTone(440, 'square', 0.10, 0.15); }, 120);
+}
+function seGameOver() {
+  // ゲームオーバー：重い下降
+  playTone(220, 'sawtooth', 0.3, 0.3, 55);
+  setTimeout(function(){ playTone(110, 'square', 0.5, 0.2); }, 200);
+}
+function seStageClear() {
+  // ステージクリア：明るいファンファーレ
+  var notes = [523, 659, 784, 1047];
+  notes.forEach(function(n, i) {
+    setTimeout(function(){ playTone(n, 'sine', 0.18, 0.25); }, i * 120);
+  });
+}
+function seLastBlock() {
+  // 残り1個：緊張感のある警告
+  playTone(880, 'square', 0.12, 0.18);
+  setTimeout(function(){ playTone(660, 'square', 0.12, 0.15); }, 140);
+}
+function seTimerTick() {
+  // タイマーカウント：短いビープ
+  playTone(1200, 'square', 0.05, 0.08);
+}
+
 var gameState = 'playing';
 var lastBlockTimer = -1;   //
 var LAST_BLOCK_TIME = 15.0;
@@ -640,7 +730,8 @@ function updateNormalBall(b) {
     if (b.vel.z > 0) b.vel.z = -Math.abs(b.vel.z);
     normBallVel(b);
     b.pos.z = paddleCurrentZ - paddleD/2 - BALL_R - 0.05;
-    noHitTimer = 0;  //
+    noHitTimer = 0;
+    sePaddleHit();
   }
 
   //    
@@ -658,10 +749,12 @@ function updateNormalBall(b) {
         if(ox<oz){ b.vel.x*=-1; b.pos.x+=b.vel.x>0?ox:-ox; }
         else      { b.vel.z*=-1; b.pos.z+=b.vel.z>0?oz:-oz; }
         hitBlock(blk,c,r, b.isChild);
-        noHitTimer = 0;  //
+        noHitTimer = 0;
+        seBlockHit();
         score+=10; document.getElementById('scoreVal').textContent=score;
         if(updateBlockCount()===0){
           gameState='clear';
+          seStageClear();
           showMsg('STAGE ' + stage + ' CLEAR !');
           setTimeout(function(){ nextStage(); }, 2000);
         }
@@ -714,9 +807,11 @@ function updateItemBall(b) {
   var phw=getPaddleHalfW();
   if(pdz < paddleD/2+BALL_R+0.2 && pdx < phw+0.2){
     if(b.type==='red'){
-      setPaddleWidth(paddleW * 0.80);  //
+      seItemRed();
+      setPaddleWidth(paddleW * 0.80);
     } else {
-      setPaddleWidth(paddleW * 1.10);  //
+      seItemBlue();
+      setPaddleWidth(paddleW * 1.10);
     }
     removeBall(b); return;
   }
@@ -764,6 +859,7 @@ function update() {
       var src = aliveBlocks[Math.floor(Math.random() * aliveBlocks.length)];
       var vx = (Math.random() - 0.5) * 0.15;
       var vz = BALL_SPEED;
+      seLaunchBall();
       spawnLaunchBall(src.mesh.position.x, src.mesh.position.z, vx, vz);
     }
   }
@@ -790,6 +886,8 @@ function update() {
   if (lastBlockTimer >= 0) {
     lastBlockTimer -= 1/60;
     var disp = Math.max(0, Math.ceil(lastBlockTimer));
+    var prevDisp = parseInt(document.getElementById('lastBlockTimer').textContent) || 0;
+    if (disp !== prevDisp && disp > 0) seTimerTick();
     document.getElementById('lastBlockTimer').textContent = disp;
     //
     var el = document.getElementById('lastBlockTimer');
@@ -804,6 +902,7 @@ function update() {
       lastBlockTimer = -1;
       document.getElementById('lastBlockTimer').style.display = 'none';
       gameState = 'gameover';
+      seGameOver();
       showMsg('TIME OVER\n\nPress R to Retry');
       return;
     }
@@ -814,6 +913,7 @@ function update() {
     var gb = allBlocks[gi];
     if (gb.alive && !gb.hitting && gb.mesh.position.z >= GAMEOVER_Z) {
       gameState = 'gameover';
+      seGameOver();
       showMsg('GAME OVER\n\nPress R to Retry');
       return;
     }
