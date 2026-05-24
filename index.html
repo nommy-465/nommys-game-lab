@@ -282,22 +282,35 @@ main {
 .gs-02 { background:linear-gradient(90deg,var(--neon-teal),var(--block-sky),var(--block-lav)); }
 .gs-03 { background:linear-gradient(90deg,var(--sky-gold),var(--block-coral),var(--neon-orange)); }
 
-/* ── MAIN STAGE: Title + Preview + Play ── */
-.gc-stage {
-  display:grid;
-  grid-template-columns:1fr 260px;
-  gap:0;
-  min-height:210px;
+/* ── CARD HEADER: Stage info + Play btn ── */
+.gc-header {
+  display:flex; align-items:center; gap:14px;
+  padding:10px 18px;
+  border-bottom:1px solid rgba(255,255,255,.06);
+  flex-wrap:wrap;
 }
-@media(max-width:720px){ .gc-stage{grid-template-columns:1fr;} }
+.gc-header-meta { flex:1; min-width:0; }
+.gc-header .gc-num  { margin-bottom:3px; }
+.gc-header .gc-title-row { margin-bottom:3px; }
+.gc-header .gc-tags { margin:3px 0 0; }
 
-/* Left: Title & Play */
-.gc-left {
-  padding:18px 22px;
-  display:flex; flex-direction:column; justify-content:space-between;
-  border-right:1px solid rgba(255,255,255,.06);
-  background:linear-gradient(135deg,rgba(255,107,107,.06) 0%,transparent 70%);
+/* ── CARD BODY: Screenshot(L) + Detail(R) ── */
+.gc-body {
+  display:grid;
+  grid-template-columns:180px 1fr;
 }
+.gc-screenshot {
+  border-right:1px solid rgba(255,255,255,.06);
+  overflow:hidden; background:var(--sky-deep);
+  min-height:160px;
+}
+.gc-screenshot img {
+  width:100%; height:100%;
+  object-fit:cover; object-position:center top;
+  display:block; min-height:160px;
+  filter:brightness(.95) saturate(1.05);
+}
+.gc-detail { display:flex; flex-direction:column; min-width:0; overflow:hidden; }
 .gc-num {
   font-family:'Press Start 2P',monospace; font-size:.46rem;
   color:rgba(253,203,110,.4); letter-spacing:.2em; margin-bottom:5px;
@@ -325,10 +338,10 @@ main {
 .play-btn {
   display:flex; align-items:center; justify-content:center; gap:10px;
   text-decoration:none;
-  font-family:'Press Start 2P',monospace; font-size:.58rem;
-  color:#000; padding:12px 18px; border-radius:3px;
-  letter-spacing:.12em; transition:all .2s; white-space:nowrap;
-  width:100%; box-sizing:border-box;
+  font-family:'Press Start 2P',monospace; font-size:.56rem;
+  color:#000; padding:9px 14px; border-radius:3px;
+  letter-spacing:.1em; transition:all .2s; white-space:nowrap;
+  flex-shrink:0;
 }
 .play-btn::before { content:'▶ '; font-size:.75rem; }
 .pb-01 { background:var(--block-coral); box-shadow:0 0 20px rgba(255,107,107,.5),0 4px 12px rgba(0,0,0,.4); }
@@ -336,23 +349,7 @@ main {
 .pb-03 { background:var(--sky-gold);    box-shadow:0 0 20px rgba(255,202,40,.5),0 4px 12px rgba(0,0,0,.4); }
 .play-btn:hover { transform:translateY(-3px) scale(1.03); filter:brightness(1.12); }
 
-/* ── Right: Screenshot Preview ── */
-.gc-preview {
-  position:relative; overflow:hidden;
-  background:var(--sky-deep);
-  min-height:210px;
-}
-.gc-preview img {
-  width:100%; height:100%;
-  object-fit:cover; object-position:center top;
-  display:block;
-  min-height:210px;
-  filter:brightness(.95) saturate(1.05);
-}
-.gc-preview-inner {
-  position:absolute; inset:0;
-  display:flex; align-items:center; justify-content:center;
-}
+/* gc-preview → replaced by gc-screenshot */
 
 /* ── CSS Screenshot: TAG-BM III (Space Shooter) ── */
 .preview-space {
@@ -646,10 +643,9 @@ footer p { font-family:'VT323',monospace; font-size:1rem; color:rgba(255,245,240
 /* ════════════════════════════════════════
    RESPONSIVE
 ════════════════════════════════════════ */
-@media(max-width:720px){
-  .gc-stage { grid-template-columns:1fr; }
-  .gc-preview { min-height:180px; }
-  .gc-left { border-right:none; border-bottom:1px solid rgba(255,255,255,.06); }
+@media(max-width:640px){
+  .gc-body { grid-template-columns:1fr; }
+  .gc-screenshot { border-right:none; border-bottom:1px solid rgba(255,255,255,.06); }
   .creator-subpanel { padding:16px 20px; }
   .creator-subpanel::before { display:none; }
 }
@@ -1007,29 +1003,26 @@ footer p { font-family:'VT323',monospace; font-size:1rem; color:rgba(255,245,240
   <!-- ══════════ GAME 01: BAYWATCH ══════════ -->
   <div class="game-card">
     <div class="gc-stripe gs-01"></div>
-    <div class="gc-stage">
-      <div class="gc-left" style="background:linear-gradient(135deg,rgba(255,202,40,.06) 0%,transparent 70%)">
-        <div>
-          <div class="gc-num">STAGE — 01</div>
-          <div class="gc-title-row">
-            <span class="gc-emoji">🌊</span>
-            <span class="gc-title gt-01">BAYWATCH</span>
-          </div>
-          <div class="gc-tags">
-            <span class="gc-tag tt-01">ACTION</span>
-            <span class="gc-tag tt-01">RESCUE</span>
-            <span class="gc-tag tt-01">OCEAN</span>
-          </div>
+    <div class="gc-header" style="background:linear-gradient(135deg,rgba(255,202,40,.06) 0%,transparent 70%)">
+      <div class="gc-header-meta">
+        <div class="gc-num">STAGE — 01</div>
+        <div class="gc-title-row">
+          <span class="gc-emoji">🌊</span>
+          <span class="gc-title gt-01">BAYWATCH</span>
         </div>
-        <a class="play-btn pb-01" href="baywatch.html" target="_blank">PLAY NOW</a>
+        <div class="gc-tags">
+          <span class="gc-tag tt-01">ACTION</span>
+          <span class="gc-tag tt-01">RESCUE</span>
+          <span class="gc-tag tt-01">OCEAN</span>
+        </div>
       </div>
-      <!-- CSS Preview: Ocean -->
-      <div class="gc-preview">
+      <a class="play-btn pb-01" href="baywatch.html" target="_blank">PLAY NOW</a>
+    </div>
+    <div class="gc-body">
+      <div class="gc-screenshot">
         <img src="screenshot_baywatch.png" alt="BAYWATCH screenshot">
       </div>
-    </div>
-
-    <!-- Controls -->
+      <div class="gc-detail">
     <div class="gc-controls">
       <span class="ctrl-label">CONTROLS</span>
       <div class="ctrl-item">
@@ -1080,35 +1073,33 @@ footer p { font-family:'VT323',monospace; font-size:1rem; color:rgba(255,245,240
         </div>
       </div>
     </div>
-  </div><!-- /game-card 03 -->
+      </div><!-- /gc-detail -->
+    </div><!-- /gc-body -->
+  </div><!-- /game-card 01 -->
 
   <!-- ══════════ GAME 02: ALDEBARAN ══════════ -->
   <div class="game-card">
     <div class="gc-stripe gs-02"></div>
-    <div class="gc-stage">
-      <!-- Left -->
-      <div class="gc-left">
-        <div>
-          <div class="gc-num">STAGE — 02</div>
-          <div class="gc-title-row">
-            <span class="gc-emoji">🚀</span>
-            <span class="gc-title gt-02">ALDEBARAN</span>
-          </div>
-          <div class="gc-tags">
-            <span class="gc-tag tt-02">COLLECT</span>
-            <span class="gc-tag tt-02">CYBERPUNK</span>
-            <span class="gc-tag tt-02">ACTION</span>
-          </div>
+    <div class="gc-header">
+      <div class="gc-header-meta">
+        <div class="gc-num">STAGE — 02</div>
+        <div class="gc-title-row">
+          <span class="gc-emoji">🚀</span>
+          <span class="gc-title gt-02">ALDEBARAN</span>
         </div>
-        <a class="play-btn pb-02" href="TAG_BM3.html" target="_blank">PLAY NOW</a>
+        <div class="gc-tags">
+          <span class="gc-tag tt-02">COLLECT</span>
+          <span class="gc-tag tt-02">CYBERPUNK</span>
+          <span class="gc-tag tt-02">ACTION</span>
+        </div>
       </div>
-      <!-- Right: CSS Preview -->
-      <div class="gc-preview">
+      <a class="play-btn pb-02" href="TAG_BM3.html" target="_blank">PLAY NOW</a>
+    </div>
+    <div class="gc-body">
+      <div class="gc-screenshot">
         <img src="screenshot_tag_bm3_final.png" alt="ALDEBARAN screenshot">
       </div>
-    </div>
-
-    <!-- Controls -->
+      <div class="gc-detail">
     <div class="gc-controls">
       <span class="ctrl-label">CONTROLS</span>
       <div class="ctrl-item">
@@ -1155,34 +1146,33 @@ footer p { font-family:'VT323',monospace; font-size:1rem; color:rgba(255,245,240
         </div>
       </div>
     </div>
-  </div><!-- /game-card 01 -->
+      </div><!-- /gc-detail -->
+    </div><!-- /gc-body -->
+  </div><!-- /game-card 02 -->
 
   <!-- ══════════ GAME 03: POLYGON STAR ══════════ -->
   <div class="game-card">
     <div class="gc-stripe gs-03"></div>
-    <div class="gc-stage">
-      <div class="gc-left" style="background:linear-gradient(135deg,rgba(29,233,182,.06) 0%,transparent 70%)">
-        <div>
-          <div class="gc-num">STAGE — 03</div>
-          <div class="gc-title-row">
-            <span class="gc-emoji">⭐</span>
-            <span class="gc-title gt-03">STARSHIP TROOPERS</span>
-          </div>
-          <div class="gc-tags">
-            <span class="gc-tag tt-03">3D</span>
-            <span class="gc-tag tt-03">VECTOR</span>
-            <span class="gc-tag tt-03">THREE.JS</span>
-          </div>
+    <div class="gc-header" style="background:linear-gradient(135deg,rgba(29,233,182,.06) 0%,transparent 70%)">
+      <div class="gc-header-meta">
+        <div class="gc-num">STAGE — 03</div>
+        <div class="gc-title-row">
+          <span class="gc-emoji">⭐</span>
+          <span class="gc-title gt-03">STARSHIP TROOPERS</span>
         </div>
-        <a class="play-btn pb-03" href="polygon_star_collision_fix.html" target="_blank">PLAY NOW</a>
+        <div class="gc-tags">
+          <span class="gc-tag tt-03">3D</span>
+          <span class="gc-tag tt-03">VECTOR</span>
+          <span class="gc-tag tt-03">THREE.JS</span>
+        </div>
       </div>
-      <!-- CSS Preview: 3D Polygon -->
-      <div class="gc-preview">
+      <a class="play-btn pb-03" href="polygon_star_collision_fix.html" target="_blank">PLAY NOW</a>
+    </div>
+    <div class="gc-body">
+      <div class="gc-screenshot">
         <img src="screenshot_starship_final.png" alt="Starship Troopers screenshot">
       </div>
-    </div>
-
-    <!-- Controls -->
+      <div class="gc-detail">
     <div class="gc-controls">
       <span class="ctrl-label">CONTROLS</span>
       <div class="ctrl-item">
@@ -1236,33 +1226,33 @@ footer p { font-family:'VT323',monospace; font-size:1rem; color:rgba(255,245,240
         </div>
       </div>
     </div>
-  </div><!-- /game-card 02 -->
+      </div><!-- /gc-detail -->
+    </div><!-- /gc-body -->
+  </div><!-- /game-card 03 -->
 
   <!-- ══════════ GAME 04: 3D BLOCK BREAKER ══════════ -->
   <div class="game-card">
     <div class="gc-stripe" style="background:linear-gradient(90deg,#a29bfe,#ff4081,#1de9b6)"></div>
-    <div class="gc-stage">
-      <div class="gc-left" style="background:linear-gradient(135deg,rgba(162,155,254,.06) 0%,transparent 70%)">
-        <div>
-          <div class="gc-num">STAGE — 04</div>
-          <div class="gc-title-row">
-            <span class="gc-emoji">🎮</span>
-            <span class="gc-title" style="color:#a29bfe;text-shadow:0 0 20px rgba(162,155,254,.6)">3D BLOCK BREAKER</span>
-          </div>
-          <div class="gc-tags">
-            <span class="gc-tag" style="border:1px solid rgba(162,155,254,.5);color:#a29bfe">3D</span>
-            <span class="gc-tag" style="border:1px solid rgba(162,155,254,.5);color:#a29bfe">BLOCK</span>
-            <span class="gc-tag" style="border:1px solid rgba(162,155,254,.5);color:#a29bfe">BREAKER</span>
-          </div>
+    <div class="gc-header" style="background:linear-gradient(135deg,rgba(162,155,254,.06) 0%,transparent 70%)">
+      <div class="gc-header-meta">
+        <div class="gc-num">STAGE — 04</div>
+        <div class="gc-title-row">
+          <span class="gc-emoji">🎮</span>
+          <span class="gc-title" style="color:#a29bfe;text-shadow:0 0 20px rgba(162,155,254,.6)">3D BLOCK BREAKER</span>
         </div>
-        <a class="play-btn" href="blockbreaker3d.html" target="_blank" style="background:#a29bfe;box-shadow:0 0 20px rgba(162,155,254,.5),0 4px 12px rgba(0,0,0,.4)">PLAY NOW</a>
+        <div class="gc-tags">
+          <span class="gc-tag" style="border:1px solid rgba(162,155,254,.5);color:#a29bfe">3D</span>
+          <span class="gc-tag" style="border:1px solid rgba(162,155,254,.5);color:#a29bfe">BLOCK</span>
+          <span class="gc-tag" style="border:1px solid rgba(162,155,254,.5);color:#a29bfe">BREAKER</span>
+        </div>
       </div>
-      <div class="gc-preview">
+      <a class="play-btn" href="blockbreaker3d.html" target="_blank" style="background:#a29bfe;box-shadow:0 0 20px rgba(162,155,254,.5),0 4px 12px rgba(0,0,0,.4)">PLAY NOW</a>
+    </div>
+    <div class="gc-body">
+      <div class="gc-screenshot">
         <img src="screenshot_blockbreaker3d.png" alt="3D BLOCK BREAKER screenshot">
       </div>
-    </div>
-
-    <!-- Controls -->
+      <div class="gc-detail">
     <div class="gc-controls">
       <span class="ctrl-label">CONTROLS</span>
       <div class="ctrl-item">
@@ -1320,33 +1310,33 @@ footer p { font-family:'VT323',monospace; font-size:1rem; color:rgba(255,245,240
         </div>
       </div>
     </div>
+      </div><!-- /gc-detail -->
+    </div><!-- /gc-body -->
   </div><!-- /game-card 04 -->
 
   <!-- ══════════ GAME 05: SAILING RACE ══════════ -->
   <div class="game-card">
     <div class="gc-stripe" style="background:linear-gradient(90deg,#00b4d8,#0096c7,#48cae4)"></div>
-    <div class="gc-stage">
-      <div class="gc-left" style="background:linear-gradient(135deg,rgba(0,180,216,.06) 0%,transparent 70%)">
-        <div>
-          <div class="gc-num">STAGE — 05</div>
-          <div class="gc-title-row">
-            <span class="gc-emoji">⛵</span>
-            <span class="gc-title" style="color:#00b4d8;text-shadow:0 0 20px rgba(0,180,216,.6)">SAILING RACE</span>
-          </div>
-          <div class="gc-tags">
-            <span class="gc-tag" style="border:1px solid rgba(0,180,216,.5);color:#00b4d8">RACE</span>
-            <span class="gc-tag" style="border:1px solid rgba(0,180,216,.5);color:#00b4d8">SAILING</span>
-            <span class="gc-tag" style="border:1px solid rgba(0,180,216,.5);color:#00b4d8">WIND</span>
-          </div>
+    <div class="gc-header" style="background:linear-gradient(135deg,rgba(0,180,216,.06) 0%,transparent 70%)">
+      <div class="gc-header-meta">
+        <div class="gc-num">STAGE — 05</div>
+        <div class="gc-title-row">
+          <span class="gc-emoji">⛵</span>
+          <span class="gc-title" style="color:#00b4d8;text-shadow:0 0 20px rgba(0,180,216,.6)">SAILING RACE</span>
         </div>
-        <a class="play-btn" href="sailing.html" target="_blank" style="background:#00b4d8;box-shadow:0 0 20px rgba(0,180,216,.5),0 4px 12px rgba(0,0,0,.4)">PLAY NOW</a>
+        <div class="gc-tags">
+          <span class="gc-tag" style="border:1px solid rgba(0,180,216,.5);color:#00b4d8">RACE</span>
+          <span class="gc-tag" style="border:1px solid rgba(0,180,216,.5);color:#00b4d8">SAILING</span>
+          <span class="gc-tag" style="border:1px solid rgba(0,180,216,.5);color:#00b4d8">WIND</span>
+        </div>
       </div>
-      <div class="gc-preview">
+      <a class="play-btn" href="sailing.html" target="_blank" style="background:#00b4d8;box-shadow:0 0 20px rgba(0,180,216,.5),0 4px 12px rgba(0,0,0,.4)">PLAY NOW</a>
+    </div>
+    <div class="gc-body">
+      <div class="gc-screenshot">
         <img src="screenshot_sailing.png" alt="SAILING RACE screenshot">
       </div>
-    </div>
-
-    <!-- Controls -->
+      <div class="gc-detail">
     <div class="gc-controls">
       <span class="ctrl-label">CONTROLS</span>
       <div class="ctrl-item">
@@ -1404,6 +1394,8 @@ footer p { font-family:'VT323',monospace; font-size:1rem; color:rgba(255,245,240
         </div>
       </div>
     </div>
+      </div><!-- /gc-detail -->
+    </div><!-- /gc-body -->
   </div><!-- /game-card 05 -->
 
   <!-- COMING SOON -->
