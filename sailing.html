@@ -77,7 +77,7 @@ function applyTouch(px,py,down){
     var dx=px-startBtn.x, dy=py-startBtn.y;
     if(dx*dx+dy*dy<startBtn.r*startBtn.r){
       if(gameState.phase==='ready'||gameState.phase==='result'){
-        if(gameState.phase==='result'&&gameState.result==='victory') stageNum++;
+        if(gameState.phase==='result'&&gameState.result!=='lose_time') stageNum++;
         initGame(); gameState.phase='racing'; gameState.startTime=Date.now();
       }
     }
@@ -1227,12 +1227,13 @@ function drawResultScreen(){
     ctx.textAlign='center'; ctx.textBaseline='middle';
     ctx.fillText('LOSE',W/2,H/2-65);
     ctx.fillStyle='rgba(200,210,255,0.85)'; ctx.font='20px Arial';
-    var reason=gameState.result==='lose_time'?'タイムアップ！':'ライバルに負けた！';
+    var reason=gameState.result==='lose_time'?'タイムアップ！':'ライバルに負けたが完走！';
     ctx.fillText(reason,W/2,H/2-10);
     ctx.fillStyle='white'; ctx.font='16px Arial';
     ctx.fillText('タイム: '+formatTime(gameState.elapsed),W/2,H/2+25);
-    ctx.fillStyle='rgba(200,210,255,0.7)'; ctx.font='15px Arial';
-    ctx.fillText('もう一度挑戦！',W/2,H/2+65);
+    ctx.fillStyle='#ffdd44'; ctx.font='bold 15px Arial';
+    var nextMsg=gameState.result==='lose_time'?'もう一度挑戦！':'次のステージへ →';
+    ctx.fillText(nextMsg,W/2,H/2+65);
   }
   ctx.fillStyle='rgba(255,255,255,0.4)'; ctx.font='12px Arial';
   ctx.fillText('SPACE / タップで続ける',W/2,H/2+100);
@@ -1374,7 +1375,7 @@ function update(ts){
   if(keys['Space']){
     initAudio(); // 最初のキー入力でAudioContext起動
     if(gameState.phase==='ready'||gameState.phase==='result'){
-      if(gameState.phase==='result'&&gameState.result==='victory') stageNum++;
+      if(gameState.phase==='result'&&gameState.result!=='lose_time') stageNum++;
       initGame(); gameState.phase='racing'; gameState.startTime=Date.now();
     }
     keys['Space']=false;
