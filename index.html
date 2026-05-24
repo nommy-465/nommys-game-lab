@@ -297,20 +297,23 @@ main {
 /* ── CARD BODY: Screenshot(L) + Detail(R) ── */
 .gc-body {
   display:grid;
-  grid-template-columns:180px 1fr;
+  grid-template-columns:clamp(200px,38%,340px) 1fr;
 }
 .gc-screenshot {
   border-right:1px solid rgba(255,255,255,.06);
   overflow:hidden; background:var(--sky-deep);
-  min-height:160px;
+  aspect-ratio:16/9;
+  min-height:140px;
+  align-self:stretch;
 }
 .gc-screenshot img {
   width:100%; height:100%;
   object-fit:cover; object-position:center top;
-  display:block; min-height:160px;
+  display:block;
   filter:brightness(.95) saturate(1.05);
 }
 .gc-detail { display:flex; flex-direction:column; min-width:0; overflow:hidden; }
+.gc-detail > .gc-controls { border-top:none; }
 .gc-num {
   font-family:'Press Start 2P',monospace; font-size:.46rem;
   color:rgba(253,203,110,.4); letter-spacing:.2em; margin-bottom:5px;
@@ -644,8 +647,24 @@ footer p { font-family:'VT323',monospace; font-size:1rem; color:rgba(255,245,240
    RESPONSIVE
 ════════════════════════════════════════ */
 @media(max-width:640px){
-  .gc-body { grid-template-columns:1fr; }
-  .gc-screenshot { border-right:none; border-bottom:1px solid rgba(255,255,255,.06); }
+  .gc-body { grid-template-columns:130px 1fr; }
+  .gc-screenshot { aspect-ratio:unset; min-height:100px; }
+  .gc-header { padding:8px 12px; gap:6px; }
+  .gc-num { font-size:.36rem; }
+  .gc-title { font-size:clamp(.55rem,3.2vw,.85rem) !important; }
+  .gc-tags { gap:3px; margin:2px 0 0; }
+  .gc-tag { font-size:.82rem; padding:1px 6px; }
+  .play-btn { font-size:.4rem !important; padding:7px 10px !important; letter-spacing:.06em !important; }
+  .gc-controls { padding:5px 10px; gap:2px 8px; }
+  .ctrl-label { font-size:.4rem; }
+  .ctrl-desc { font-size:.88rem; }
+  kbd { font-size:.36rem; min-width:20px; height:18px; }
+  .accordion-btn { padding:9px 14px; font-size:.72rem; }
+  .accordion-inner { padding:10px 14px 12px; }
+  .game-desc-inner { font-size:.82rem; }
+  .dialog-box { padding:10px 12px; }
+  .dialog-speaker { font-size:1rem; }
+  .dialog-text { font-size:.8rem; }
   .creator-subpanel { padding:16px 20px; }
   .creator-subpanel::before { display:none; }
 }
@@ -927,6 +946,26 @@ footer p { font-family:'VT323',monospace; font-size:1rem; color:rgba(255,245,240
   letter-spacing: .06em;
   text-align: center;
   margin-top: 20px;
+}
+
+/* ════════════════════════════════════════
+   BGM BUTTON
+════════════════════════════════════════ */
+#bgm-btn {
+  position:fixed; bottom:22px; right:20px; z-index:1000;
+  font-family:'Press Start 2P',monospace; font-size:.42rem;
+  padding:10px 14px; letter-spacing:.1em;
+  background:rgba(10,4,30,.94);
+  border:1px solid rgba(255,245,240,.18);
+  color:rgba(255,245,240,.38);
+  cursor:pointer; border-radius:3px;
+  transition:all .25s; line-height:1;
+}
+#bgm-btn:hover { border-color:rgba(255,245,240,.4); color:rgba(255,245,240,.72); }
+#bgm-btn.bgm-on {
+  border-color:var(--neon-teal);
+  color:var(--neon-teal);
+  box-shadow:0 0 16px rgba(29,233,182,.35), 0 0 4px rgba(29,233,182,.2);
 }
 </style>
 </head>
@@ -1539,6 +1578,139 @@ function toggleAccordion(btn) {
     body.classList.add('open');
   }
 }
+
+/* ═══════════════════════════════════════
+   8-BIT RESORT BGM  (Web Audio API)
+═══════════════════════════════════════ */
+(function(){
+'use strict';
+var actx=null, mGain=null, on=false, tid=null;
+var BPM=118, Q=60/BPM, E=Q/2, S=Q/4, H=Q*2;
+
+// Frequencies — D major scale
+var _=0,
+    D3=146.83,E3=164.81,Fs3=185.00,G3=196.00,A3=220.00,B3=246.94,
+    Cs4=277.18,D4=293.66,E4=329.63,Fs4=369.99,G4=392.00,A4=440.00,B4=493.88,
+    Cs5=554.37,D5=587.33,E5=659.25,Fs5=739.99,G5=783.99;
+
+// 8-bar melody (8×4Q = 32Q)
+var MEL=[
+  [Fs5,Q],[E5,Q],[D5,Q],[A4,Q],          // bar1 D
+  [B4,E],[A4,E],[B4,Q],[D5,H],           // bar2 G
+  [E5,Q],[D5,E],[B4,E],[G4,H],           // bar3 Em
+  [Fs4,E],[G4,E],[A4,Q],[Cs5,H],         // bar4 A
+  [D5,E],[E5,E],[Fs5,Q],[E5,Q],[D5,Q],   // bar5 D var
+  [G5,Q],[Fs5,E],[E5,E],[D5,H],          // bar6 G var
+  [B4,E],[D5,E],[E5,Q],[Fs5,Q],[G5,Q],   // bar7 Em var
+  [E5,E],[Cs5,E],[D5,H],[_,Q]            // bar8 A→D
+];
+
+// 4-bar bass (4×4Q = 16Q, played ×2)
+var BSS=[
+  [D3,Q],[A3,E],[Fs3,E],[D3,Q],[A3,Q],
+  [G3,Q],[D3,E],[B3,E],[G3,Q],[D3,Q],
+  [E3,Q],[B3,E],[G3,E],[E3,Q],[B3,Q],
+  [A3,Q],[E3,E],[Cs4,E],[A3,Q],[E3,Q]
+];
+
+// Arpeggio chords (4 chords ×16 S = 4 bars, played ×2)
+var ARP=[[D4,Fs4,A4,Fs4],[G4,B4,D5,B4],[E4,G4,B4,G4],[A4,Cs5,E5,Cs5]];
+
+function osc(f,t,d,type,vol){
+  if(!f||!actx) return;
+  var o=actx.createOscillator(),g=actx.createGain();
+  o.type=type; o.frequency.value=f;
+  g.gain.setValueAtTime(0,t);
+  g.gain.linearRampToValueAtTime(vol,t+0.016);
+  g.gain.setValueAtTime(vol,t+d*0.72);
+  g.gain.linearRampToValueAtTime(0,t+d*0.94);
+  o.connect(g); g.connect(mGain);
+  o.start(t); o.stop(t+d+0.05);
+}
+
+function kick(t){
+  if(!actx) return;
+  var o=actx.createOscillator(),g=actx.createGain();
+  o.type='sine';
+  o.frequency.setValueAtTime(150,t);
+  o.frequency.exponentialRampToValueAtTime(38,t+0.14);
+  g.gain.setValueAtTime(0.48,t);
+  g.gain.linearRampToValueAtTime(0,t+0.20);
+  o.connect(g); g.connect(mGain);
+  o.start(t); o.stop(t+0.22);
+}
+
+function hihat(t,vol){
+  if(!actx) return;
+  var len=Math.floor(actx.sampleRate*0.04);
+  var buf=actx.createBuffer(1,len,actx.sampleRate);
+  var d=buf.getChannelData(0);
+  for(var i=0;i<len;i++) d[i]=Math.random()*2-1;
+  var src=actx.createBufferSource(),flt=actx.createBiquadFilter(),g=actx.createGain();
+  flt.type='highpass'; flt.frequency.value=7500;
+  src.buffer=buf; src.connect(flt); flt.connect(g); g.connect(mGain);
+  g.gain.setValueAtTime(vol||0.11,t);
+  g.gain.linearRampToValueAtTime(0,t+0.032);
+  src.start(t);
+}
+
+function schedule(t0){
+  if(!on) return;
+  var loopLen=Q*32;
+  var t;
+
+  // Melody (square)
+  t=t0; MEL.forEach(function(n){ osc(n[0],t,n[1],'square',0.15); t+=n[1]; });
+
+  // Bass ×2 (triangle)
+  t=t0;
+  for(var r=0;r<2;r++) BSS.forEach(function(n){ osc(n[0],t,n[1],'triangle',0.22); t+=n[1]; });
+
+  // Arpeggio ×2 (square, soft)
+  t=t0;
+  for(var rep=0;rep<2;rep++){
+    ARP.forEach(function(chord){
+      for(var i=0;i<16;i++){ osc(chord[i%chord.length],t,S,'square',0.065); t+=S; }
+    });
+  }
+
+  // Drums: kick on beats 1&3, hihat on every 8th note
+  for(var b=0;b<32;b++){
+    var bt=t0+b*Q;
+    if(b%4===0||b%4===2) kick(bt);
+    hihat(bt, 0.10);
+    hihat(bt+E, 0.06);
+  }
+
+  tid=setTimeout(function(){ schedule(t0+loopLen); },(loopLen-0.35)*1000);
+}
+
+function startBGM(){
+  actx=new(window.AudioContext||window.webkitAudioContext)();
+  mGain=actx.createGain(); mGain.gain.value=0.42; mGain.connect(actx.destination);
+  on=true; schedule(actx.currentTime+0.15);
+}
+function stopBGM(){
+  on=false; if(tid) clearTimeout(tid);
+  if(actx){ actx.close(); actx=null; }
+}
+
+window._bgmToggle=function(){
+  var btn=document.getElementById('bgm-btn');
+  if(on){
+    stopBGM();
+    btn.textContent='♪ BGM';
+    btn.classList.remove('bgm-on');
+  } else {
+    startBGM();
+    btn.textContent='♫ ON';
+    btn.classList.add('bgm-on');
+  }
+};
+})();
+
 </script>
+
+<button id="bgm-btn" onclick="_bgmToggle()" aria-label="BGM toggle">♪ BGM</button>
 </body>
 </html>
