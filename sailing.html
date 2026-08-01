@@ -24,6 +24,20 @@ canvas.style.outline='none';             // フォーカス枠を非表示
 canvas.focus();                          // 起動時に自動フォーカス
 canvas.addEventListener('click',function(){ canvas.focus(); initAudio(); });
 
+// ===== MOUSE INPUT (PC対応: タッチと同じ当たり判定を使う) =====
+var mouseDown=false;
+canvas.addEventListener('mousedown',function(e){
+  mouseDown=true;
+  initAudio();
+  var p=canvasPos(e.clientX,e.clientY);
+  applyTouch(p.x,p.y,true);
+});
+window.addEventListener('mouseup',function(){
+  if(!mouseDown) return;
+  mouseDown=false;
+  touchBtns.forEach(function(b){ b.active=false; keys[b.key]=false; });
+});
+
 // ===== RESPONSIVE SCALING =====
 function resize(){
   var sx=window.innerWidth/W, sy=window.innerHeight/H;
@@ -123,7 +137,7 @@ canvas.addEventListener('touchend',function(e){
 
 // ===== GAME STATE =====
 var WORLD_W=2400, WORLD_H=2400, MAX_LAPS=1;
-var TIMER_START=60, BUOY_BONUS=20;
+var TIMER_START=95, BUOY_BONUS=25;
 var stageNum=1;
 
 // ステージごとのコースレイアウト（ブイ位置 + スタート位置）
@@ -149,6 +163,76 @@ var boat,cam,trail,buoys,gameState;
 var rival,rivalTrail;
 var wakeParticles=[], rivalWakeParticles=[];
 var rocks=[], rockHits=[], rockHitCooldown=0;
+
+// ===== WIND FIELD (マップ全体の局所的な風向・強弱) =====
+var windFieldTime=0;
+var windParticles=[];
+var WIND_CELL_SCALE=700;     // 風のムラの空間スケール（大きいほど緩やかに変化）
+var WIND_PARTICLE_COUNT=130;
+var WIND_SPAWN_RADIUS=750;   // 自機を中心にこの半径内にパーティクルを分布
+var WIND_TRAIL_LEN=32;
+
+function hash2(x,y){
+  var s=Math.sin(x*127.1+y*311.7)*43758.5453;
+  return s-Math.floor(s);
+}
+function noise2(x,y){
+  var xi=Math.floor(x), yi=Math.floor(y);
+  var xf=x-xi, yf=y-yi;
+  var a=hash2(xi,yi), b=hash2(xi+1,yi), c=hash2(xi,yi+1), d=hash2(xi+1,yi+1);
+  var u=xf*xf*(3-2*xf), v=yf*yf*(3-2*yf);
+  return a+(b-a)*u+(c-a)*v+(a-b-c+d)*u*v;
+}
+// 指定したワールド座標での局所的な風向・風速を返す（マップ全体でムラのある風を表現）
+function windAt(wx,wy){
+  var nx=wx/WIND_CELL_SCALE+windFieldTime*0.02;
+  var ny=wy/WIND_CELL_SCALE+windFieldTime*0.015;
+  var angN=noise2(nx,ny);            // 0〜1: 方向のムラ
+  var spdN=noise2(nx+500.7,ny+500.7); // 0〜1: 強弱のムラ（別シード）
+  var dirOffset=(angN-0.5)*100;      // ±50度ほどのムラ
+  var speedMul=0.45+spdN*1.25;       // 0.45〜1.7倍のムラ
+  return { dir:wind.dir+dirOffset, speed:Math.max(1,wind.speed*speedMul) };
+}
+// 風速(kt) → 色（弱=水色→緑→黄→橙→強=赤）
+function windSpeedColor(spd){
+  var stops=[[0,[110,190,255]],[9,[80,220,140]],[15,[230,220,60]],[21,[255,140,40]],[28,[230,40,40]]];
+  var s=Math.max(0,Math.min(spd,stops[stops.length-1][0]));
+  for(var i=0;i<stops.length-1;i++){
+    if(s>=stops[i][0]&&s<=stops[i+1][0]){
+      var t=(s-stops[i][0])/(stops[i+1][0]-stops[i][0]);
+      var c0=stops[i][1], c1=stops[i+1][1];
+      return [Math.round(c0[0]+(c1[0]-c0[0])*t),Math.round(c0[1]+(c1[1]-c0[1])*t),Math.round(c0[2]+(c1[2]-c0[2])*t)];
+    }
+  }
+  return stops[stops.length-1][1];
+}
+function spawnWindParticle(){
+  var ang=Math.random()*Math.PI*2, r=Math.random()*WIND_SPAWN_RADIUS;
+  return { x:boat.x+Math.cos(ang)*r, y:boat.y+Math.sin(ang)*r,
+           trail:[], life:3+Math.random()*4 };
+}
+function initWindParticles(){
+  windParticles=[];
+  for(var i=0;i<WIND_PARTICLE_COUNT;i++) windParticles.push(spawnWindParticle());
+}
+function updateWindParticles(dt){
+  windFieldTime+=dt;
+  windParticles.forEach(function(p){
+    var w=windAt(p.x,p.y);
+    var rad=toRad(w.dir-90);
+    var spd=w.speed*6;
+    p.x+=Math.cos(rad)*spd*dt;
+    p.y+=Math.sin(rad)*spd*dt;
+    p.trail.push({x:p.x,y:p.y,spd:w.speed});
+    if(p.trail.length>WIND_TRAIL_LEN) p.trail.shift();
+    p.life-=dt;
+    var dx=p.x-boat.x, dy=p.y-boat.y;
+    if(p.life<=0||dx*dx+dy*dy>WIND_SPAWN_RADIUS*WIND_SPAWN_RADIUS*1.4){
+      var np=spawnWindParticle();
+      p.x=np.x; p.y=np.y; p.trail=[]; p.life=np.life;
+    }
+  });
+}
 var audioCtx=null, seagullTimer=8+Math.random()*10;
 var waveOffset=0;
 var cloudImgReady=false;
@@ -173,6 +257,19 @@ cloudImg.onload=function(){
 cloudImg.src='data:image/jpeg;base64,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';
 
 function toRad(d){ return d*Math.PI/180; }
+
+// ===== HEADING-UP CAMERA =====
+// ワールド座標を「自機の向きが常に画面上向き」になるよう回転させてスクリーン座標に変換
+function worldToScreen(wx,wy){
+  var dx=wx-boat.x, dy=wy-boat.y;
+  var a=toRad(-boat.hdg);
+  var cs=Math.cos(a), sn=Math.sin(a);
+  return { x:W/2+dx*cs-dy*sn, y:H/2+dx*sn+dy*cs };
+}
+// ワールド基準の向き(度)を、現在のカメラ回転を踏まえたスクリーン上の回転角(ラジアン)に変換
+function worldHdgToScreenRad(deg){
+  return toRad(deg-boat.hdg);
+}
 
 function polar(awa){
   var a=Math.abs(awa); if(a>180) a=360-a;
@@ -230,6 +327,7 @@ function initGame(){
   initRocks();
   cloudDrift={x:0,y:0};
   initClouds();
+  initWindParticles();
 }
 
 // ===== DRAW HELPERS =====
@@ -311,16 +409,11 @@ function updateRival(dt){
     rival.buoyIdx=(rival.buoyIdx+1)%3;
     if(rival.buoyIdx===0){
       rival.lap++;
-      // ライバルがゴール（最終周③通過）
+      // ライバルがゴール（最終周③通過）— 記録だけ残し、ゲームは終了させない
       if(rival.lap>=MAX_LAPS && !rival.finished){
         rival.finished=true;
         gameState.rivalFinishTime=(Date.now()-gameState.startTime)/1000;
-        // プレイヤーがまだゴールしていなければ LOSE
-        if(gameState.playerFinishTime<0 && gameState.phase==='racing'){
-          gameState.phase='result';
-          gameState.result='lose_rival';
-          gameState.elapsed=gameState.rivalFinishTime;
-        }
+        gameState.bonusPopups.push({x:W/2,y:H/2-105,text:'ライバルがゴール！',life:2.2});
       }
     }
   }
@@ -334,8 +427,10 @@ function drawRivalTrail(){
     ctx.strokeStyle='rgba(255,140,80,'+(a*0.3)+')';
     ctx.lineWidth=a*2;
     ctx.beginPath();
-    ctx.moveTo(rivalTrail[i-1].x-cam.x,rivalTrail[i-1].y-cam.y);
-    ctx.lineTo(rivalTrail[i].x-cam.x,rivalTrail[i].y-cam.y);
+    var p0=worldToScreen(rivalTrail[i-1].x,rivalTrail[i-1].y);
+    var p1=worldToScreen(rivalTrail[i].x,rivalTrail[i].y);
+    ctx.moveTo(p0.x,p0.y);
+    ctx.lineTo(p1.x,p1.y);
     ctx.stroke();
   }
   ctx.restore();
@@ -344,7 +439,7 @@ function drawRivalTrail(){
 function drawRivalBoat(sx,sy){
   ctx.save();
   ctx.translate(sx,sy);
-  ctx.rotate(toRad(rival.hdg));
+  ctx.rotate(worldHdgToScreenRad(rival.hdg));
 
   // Wake
   ctx.save(); ctx.globalAlpha=0.12; ctx.fillStyle='white';
@@ -371,7 +466,7 @@ function drawRivalBoat(sx,sy){
   // Sail (light orange tint)
   var rawa=getRivalAWA();
   var rsailSide=rawa>0?-1:1;
-  ctx.save(); ctx.rotate(toRad(rsailSide*rival.trim));
+  ctx.save(); ctx.rotate(toRad(rsailSide*rival.trim)); ctx.scale(1.3,1.3);
   ctx.strokeStyle='#888'; ctx.lineWidth=2;
   ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0,18); ctx.stroke();
   ctx.fillStyle='rgba(255,230,200,0.88)';
@@ -419,7 +514,7 @@ function drawRival(){
   // Trail first
   drawRivalTrail();
 
-  var sx=rival.x-cam.x, sy=rival.y-cam.y;
+  var rs=worldToScreen(rival.x,rival.y); var sx=rs.x, sy=rs.y;
   var onScreen=sx>-40&&sx<W+40&&sy>-40&&sy<H+40;
 
   if(onScreen){
@@ -508,7 +603,7 @@ function drawClouds(){
 
   ctx.save();
   ctx.translate(W/2, H/2); // 画面中央を原点に
-  ctx.rotate(wd);           // 風向きに回転
+  ctx.rotate(wd-toRad(boat.hdg));           // 風向きに回転(ヘディングアップ分を差し引く)
 
   // タイル状に配置してシームレスラップ
   var offsets=[-1,0,1];
@@ -608,18 +703,12 @@ function drawWakeParticles(particles, isCam){
     var r=p.r+(p.maxR-p.r)*t;     // 膨張
     var a=p.alpha*(1-t)*(1-t);    // フェードアウト（二次）
 
-    var sx, sy;
-    if(isCam){
-      // 自機: このパーティクルはワールド座標なのでカメラ変換
-      sx=p.x-cam.x; sy=p.y-cam.y;
-    } else {
-      sx=p.x-cam.x; sy=p.y-cam.y;
-    }
+    var ws=worldToScreen(p.x,p.y); var sx=ws.x, sy=ws.y;
     if(sx<-80||sx>W+80||sy<-80||sy>H+80) return;
 
     ctx.save();
     ctx.translate(sx,sy);
-    ctx.rotate(toRad(p.hdg)); // 船の向きに合わせて楕円を回転
+    ctx.rotate(worldHdgToScreenRad(p.hdg)); // 船の向きに合わせて楕円を回転
 
     // 楕円の波紋（船の進行方向に対して横長）
     ctx.strokeStyle='rgba(200,230,255,'+a+')';
@@ -646,7 +735,7 @@ function drawHitFlashes(){
     var t=f.age/f.maxAge;        // 0→1
     var r=30+t*120;               // 拡大
     var a=(1-t)*(1-t)*0.85;      // フェードアウト
-    var sx=f.x-cam.x, sy=f.y-cam.y;
+    var fs=worldToScreen(f.x,f.y); var sx=fs.x, sy=fs.y;
     if(sx<-150||sx>W+150||sy<-150||sy>H+150) return;
     // 外リング
     ctx.strokeStyle=f.col; ctx.lineWidth=4*(1-t)+1;
@@ -693,9 +782,9 @@ function initRocks(){
 
 function drawRocks(){
   rocks.forEach(function(rock){
-    var sx=rock.x-cam.x,sy=rock.y-cam.y;
+    var rs=worldToScreen(rock.x,rock.y); var sx=rs.x, sy=rs.y;
     if(sx<-rock.r-20||sx>W+rock.r+20||sy<-rock.r-20||sy>H+rock.r+20) return;
-    ctx.save(); ctx.translate(sx,sy); ctx.rotate(rock.rot);
+    ctx.save(); ctx.translate(sx,sy); ctx.rotate(rock.rot-toRad(boat.hdg));
     // 大岩: 周囲の泡リング
     if(rock.big){
       var foam=0.2+0.1*Math.sin(Date.now()*0.003);
@@ -756,7 +845,7 @@ function updateRockHits(dt){
 function drawRockHits(){
   rockHits.forEach(function(p){
     var t=p.life/p.maxLife;
-    var sx=p.x-cam.x,sy=p.y-cam.y;
+    var ps=worldToScreen(p.x,p.y); var sx=ps.x, sy=ps.y;
     ctx.save(); ctx.globalAlpha=t*0.85;
     ctx.fillStyle='rgba(210,235,255,1)';
     ctx.beginPath(); ctx.arc(sx,sy,p.r*t+1,0,Math.PI*2); ctx.fill();
@@ -845,28 +934,45 @@ function drawWater(){
   var grd=ctx.createLinearGradient(0,0,0,H);
   grd.addColorStop(0,'#1a7abf'); grd.addColorStop(1,'#0d4f85');
   ctx.fillStyle=grd; ctx.fillRect(0,0,W,H);
-  ctx.save(); ctx.strokeStyle='rgba(255,255,255,0.07)'; ctx.lineWidth=1.5;
+  ctx.save();
+  ctx.translate(W/2,H/2); ctx.rotate(-toRad(boat.hdg)); // ヘディングアップ回転
+  ctx.strokeStyle='rgba(255,255,255,0.07)'; ctx.lineWidth=1.5;
   var sp=48;
-  var ox=((-cam.x+waveOffset*0.4)%sp+sp)%sp;
-  var oy=((-cam.y+waveOffset*0.25)%sp+sp)%sp;
-  for(var x=ox-sp;x<W+sp;x+=sp)
-    for(var y=oy-sp;y<H+sp;y+=sp){
+  var diag=Math.sqrt(W*W+H*H)/2+sp; // 回転しても画面全体を覆う半径
+  var ox=((-boat.x+waveOffset*0.4)%sp+sp)%sp;
+  var oy=((-boat.y+waveOffset*0.25)%sp+sp)%sp;
+  for(var x=ox-diag;x<diag;x+=sp)
+    for(var y=oy-diag;y<diag;y+=sp){
       ctx.beginPath(); ctx.arc(x,y,9,0,Math.PI); ctx.stroke();
     }
   ctx.restore();
 }
 
 function drawWindStreaks(){
-  var wd=toRad(wind.dir), cos=Math.cos(wd), sin=Math.sin(wd);
   ctx.save();
-  for(var i=0;i<40;i++){
-    var seed=i*997.3;
-    var wx=((seed*1.7%WORLD_W)-cam.x); wx=((wx%W)+W)%W;
-    var wy=((seed*3.1%WORLD_H)-cam.y); wy=((wy%H)+H)%H;
-    var len=12+(seed%20), alpha=0.08+(seed*0.003%0.1);
-    ctx.strokeStyle='rgba(200,230,255,'+alpha+')'; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.moveTo(wx,wy); ctx.lineTo(wx+cos*len,wy+sin*len); ctx.stroke();
-  }
+  windParticles.forEach(function(p){
+    var tr=p.trail;
+    if(tr.length<2) return;
+    for(var i=1;i<tr.length;i++){
+      var a=i/tr.length; // 尾(薄)→頭(濃)にフェード
+      var col=windSpeedColor(tr[i].spd);
+      var s0=worldToScreen(tr[i-1].x,tr[i-1].y);
+      var s1=worldToScreen(tr[i].x,tr[i].y);
+      ctx.strokeStyle='rgba('+col[0]+','+col[1]+','+col[2]+','+(0.12+a*0.5)+')';
+      ctx.lineWidth=0.8+a*2.0;
+      ctx.beginPath(); ctx.moveTo(s0.x,s0.y); ctx.lineTo(s1.x,s1.y); ctx.stroke();
+    }
+    // 先端に矢羽根（向きを明示）
+    var head=tr[tr.length-1], prev=tr[tr.length-2];
+    var hs=worldToScreen(head.x,head.y), ps=worldToScreen(prev.x,prev.y);
+    var ang=Math.atan2(hs.y-ps.y,hs.x-ps.x);
+    var hcol=windSpeedColor(head.spd);
+    ctx.save();
+    ctx.translate(hs.x,hs.y); ctx.rotate(ang);
+    ctx.fillStyle='rgba('+hcol[0]+','+hcol[1]+','+hcol[2]+',0.8)';
+    ctx.beginPath(); ctx.moveTo(6,0); ctx.lineTo(-4,3.6); ctx.lineTo(-4,-3.6); ctx.closePath(); ctx.fill();
+    ctx.restore();
+  });
   ctx.restore();
 }
 
@@ -877,8 +983,10 @@ function drawTrail(){
     var a=i/trail.length;
     ctx.strokeStyle='rgba(180,220,255,'+(a*0.35)+')'; ctx.lineWidth=a*2.5;
     ctx.beginPath();
-    ctx.moveTo(trail[i-1].x-cam.x,trail[i-1].y-cam.y);
-    ctx.lineTo(trail[i].x-cam.x,trail[i].y-cam.y);
+    var p0=worldToScreen(trail[i-1].x,trail[i-1].y);
+    var p1=worldToScreen(trail[i].x,trail[i].y);
+    ctx.moveTo(p0.x,p0.y);
+    ctx.lineTo(p1.x,p1.y);
     ctx.stroke();
   }
   ctx.restore();
@@ -886,7 +994,7 @@ function drawTrail(){
 
 function drawBuoys(){
   buoys.forEach(function(b,i){
-    var sx=b.x-cam.x, sy=b.y-cam.y;
+    var bs=worldToScreen(b.x,b.y); var sx=bs.x, sy=bs.y;
     if(sx<-60||sx>W+60||sy<-60||sy>H+60) return;
     var isTarget=i===gameState.buoyIdx&&gameState.phase==='racing';
     if(isTarget){
@@ -913,7 +1021,7 @@ function drawBuoys(){
 function drawBoat(){
   ctx.save();
   ctx.translate(W/2,H/2);
-  ctx.rotate(toRad(boat.hdg));
+  // ヘディングアップ: カメラ側で回転を吸収済みのため自艇は常に画面上向き
   // Wake
   ctx.save(); ctx.globalAlpha=0.15; ctx.fillStyle='white';
   ctx.beginPath(); ctx.ellipse(0,22,12,5,0,0,Math.PI*2); ctx.fill(); ctx.restore();
@@ -947,7 +1055,7 @@ function drawBoat(){
   var b=Math.round(255-255*badness);
   var sailCol='rgba('+r+','+g+','+b+',0.92)';
 
-  ctx.save(); ctx.rotate(toRad(sailSide*boat.trim));
+  ctx.save(); ctx.rotate(toRad(sailSide*boat.trim)); ctx.scale(1.3,1.3);
   // Boom
   ctx.strokeStyle='#888'; ctx.lineWidth=2;
   ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0,18); ctx.stroke();
@@ -979,17 +1087,67 @@ function drawBoat(){
   ctx.restore();
 }
 
+// ===== 相対風 & 揚力の矢印（セールに風がどう当たり、どちらに力が働くかを可視化） =====
+function drawSailForces(){
+  ctx.save();
+  ctx.translate(W/2,H/2);
+
+  var awa=getAWA();
+  var sailSide=awa>0?-1:1;
+  var optTrim=Math.min(Math.abs(awa)/2,80);
+  var eff=polar(awa)*trimEff(awa,boat.trim); // 0(無風/失速)〜1(最大効率)
+  var theta=toRad(sailSide*boat.trim);
+
+  // --- 相対風の矢印: 上空から吹き込みセールに当たる向き ---
+  var windAngLocal=toRad(wind.dir-boat.hdg-90); // ボート基準のスクリーン角
+  var wcol=windSpeedColor(wind.speed);
+  var tailR=70, headR=30; // マストの少し先まで
+  var tx=Math.cos(windAngLocal)*tailR, ty=Math.sin(windAngLocal)*tailR;
+  var hx=Math.cos(windAngLocal)*headR, hy=Math.sin(windAngLocal)*headR;
+  ctx.strokeStyle='rgba('+wcol[0]+','+wcol[1]+','+wcol[2]+',0.85)';
+  ctx.lineWidth=2.5;
+  ctx.beginPath(); ctx.moveTo(tx,ty); ctx.lineTo(hx,hy); ctx.stroke();
+  ctx.save();
+  ctx.translate(hx,hy); ctx.rotate(windAngLocal);
+  ctx.fillStyle='rgba('+wcol[0]+','+wcol[1]+','+wcol[2]+',0.9)';
+  ctx.beginPath(); ctx.moveTo(9,0); ctx.lineTo(-6,5); ctx.lineTo(-6,-5); ctx.closePath(); ctx.fill();
+  ctx.restore();
+  // 角度ラベル(AWA)
+  ctx.font='bold 10px Arial'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillStyle='rgba('+wcol[0]+','+wcol[1]+','+wcol[2]+',0.95)';
+  ctx.fillText('AWA '+Math.round(awa)+'°', tx+Math.cos(windAngLocal)*16, ty+Math.sin(windAngLocal)*16);
+
+  // --- 揚力の矢印: セール中央から、風を受けて力が働く向きへ ---
+  var liftDir={x:Math.cos(theta), y:Math.sin(theta)}; // セールの膨らむ側=揚力の向き
+  var originX=-Math.sin(theta)*14, originY=Math.cos(theta)*14+2; // ブーム中間あたり(セール拡大に合わせ調整)
+  var liftLen=14+eff*46;
+  var lcol = eff>0.8?[68,255,136] : eff>0.5?[255,220,60] : [255,90,70];
+  var lx=originX+liftDir.x*liftLen, ly=originY+liftDir.y*liftLen;
+  ctx.strokeStyle='rgba('+lcol[0]+','+lcol[1]+','+lcol[2]+',0.9)';
+  ctx.lineWidth=3;
+  ctx.beginPath(); ctx.moveTo(originX,originY); ctx.lineTo(lx,ly); ctx.stroke();
+  ctx.save();
+  ctx.translate(lx,ly); ctx.rotate(Math.atan2(liftDir.y,liftDir.x));
+  ctx.fillStyle='rgba('+lcol[0]+','+lcol[1]+','+lcol[2]+',0.95)';
+  ctx.beginPath(); ctx.moveTo(9,0); ctx.lineTo(-6,5); ctx.lineTo(-6,-5); ctx.closePath(); ctx.fill();
+  ctx.restore();
+  ctx.font='bold 10px Arial'; ctx.fillStyle='rgba('+lcol[0]+','+lcol[1]+','+lcol[2]+',0.95)';
+  ctx.fillText('揚力', lx+liftDir.x*13, ly+liftDir.y*13);
+
+  ctx.restore();
+}
+
 // ===== BUOY DIRECTION ARROW =====
 function drawBuoyArrow(){
   if(gameState.phase!=='racing') return;
   var tb=buoys[gameState.buoyIdx];
-  var sx=tb.x-cam.x, sy=tb.y-cam.y;
+  var tbs=worldToScreen(tb.x,tb.y); var sx=tbs.x, sy=tbs.y;
   var margin=50;
   var onScreen=sx>margin&&sx<W-margin&&sy>margin&&sy<H-margin;
 
   // Always draw small arrow near boat bow showing direction
   var dx=tb.x-boat.x, dy=tb.y-boat.y;
-  var angle=Math.atan2(dy,dx);
+  var angle=Math.atan2(dy,dx)-toRad(boat.hdg); // スクリーン相対角に変換
   var dist=Math.sqrt(dx*dx+dy*dy);
 
   // Edge arrow (when buoy is off-screen)
@@ -1051,14 +1209,14 @@ function drawBuoyArrow(){
 // ===== HUD =====
 // Minimap: top-left (10,10,85x85)
 function drawMinimap(){
-  var mx=10,my=10,mw=85,mh=85;
+  var mx=10,my=10,mw=170,mh=170;
   ctx.fillStyle='rgba(10,30,60,0.8)';
-  roundRect(mx,my,mw,mh,8); ctx.fill();
-  ctx.strokeStyle='rgba(100,180,255,0.4)'; ctx.lineWidth=1.5;
-  roundRect(mx,my,mw,mh,8); ctx.stroke();
-  function toM(wx,wy){ return{x:mx+5+(wx/WORLD_W)*(mw-10),y:my+5+(wy/WORLD_H)*(mh-10)}; }
+  roundRect(mx,my,mw,mh,10); ctx.fill();
+  ctx.strokeStyle='rgba(100,180,255,0.4)'; ctx.lineWidth=2;
+  roundRect(mx,my,mw,mh,10); ctx.stroke();
+  function toM(wx,wy){ return{x:mx+8+(wx/WORLD_W)*(mw-16),y:my+8+(wy/WORLD_H)*(mh-16)}; }
   // Course line
-  ctx.strokeStyle='rgba(255,255,255,0.15)'; ctx.lineWidth=1;
+  ctx.strokeStyle='rgba(255,255,255,0.15)'; ctx.lineWidth=1.5;
   ctx.beginPath();
   var p0=toM(buoys[0].x,buoys[0].y);
   ctx.moveTo(p0.x,p0.y);
@@ -1067,66 +1225,72 @@ function drawMinimap(){
   // Buoys
   buoys.forEach(function(b,i){
     var mp=toM(b.x,b.y);
-    ctx.beginPath(); ctx.arc(mp.x,mp.y,i===gameState.buoyIdx?5:3,0,Math.PI*2);
+    ctx.beginPath(); ctx.arc(mp.x,mp.y,i===gameState.buoyIdx?9:6,0,Math.PI*2);
     ctx.fillStyle=b.done?'#666':b.col; ctx.fill();
   });
   // Boat
   var bp=toM(boat.x,boat.y);
   ctx.save(); ctx.translate(bp.x,bp.y); ctx.rotate(toRad(boat.hdg));
   ctx.fillStyle='white';
-  ctx.beginPath(); ctx.moveTo(0,-5); ctx.lineTo(3,3); ctx.lineTo(-3,3); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(0,-9); ctx.lineTo(6,6); ctx.lineTo(-6,6); ctx.closePath(); ctx.fill();
   ctx.restore();
   // Label
-  ctx.fillStyle='rgba(200,220,255,0.6)'; ctx.font='8px Arial';
+  ctx.fillStyle='rgba(200,220,255,0.65)'; ctx.font='12px Arial';
   ctx.textAlign='left'; ctx.textBaseline='top';
-  ctx.fillText('MAP',mx+4,my+4);
+  ctx.fillText('MAP',mx+7,my+6);
 }
 
-// Wind compass: below minimap
+// Wind compass: below minimap (マップを大きくした分、こちらは小さめに)
 function drawWindCompass(){
-  var cx=52, cy=168, r=42;
+  var cx=95, cy=222, r=26;
   ctx.fillStyle='rgba(10,30,60,0.8)';
-  ctx.beginPath(); ctx.arc(cx,cy,r+8,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx,cy,r+5,0,Math.PI*2); ctx.fill();
   ctx.strokeStyle='rgba(100,180,255,0.3)'; ctx.lineWidth=1.5;
   ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.stroke();
+  var camRot=-toRad(boat.hdg); // ヘディングアップ: コンパスローズ全体を回す
   // Tick marks
   for(var i=0;i<12;i++){
-    var a=toRad(i*30-90);
-    var inner=i%3===0?r-10:r-6;
+    var a=toRad(i*30-90)+camRot;
+    var inner=i%3===0?r-7:r-4;
     ctx.strokeStyle=i%3===0?'rgba(200,220,255,0.5)':'rgba(200,220,255,0.2)';
     ctx.lineWidth=i%3===0?1.5:1;
     ctx.beginPath();
     ctx.moveTo(cx+Math.cos(a)*inner,cy+Math.sin(a)*inner);
-    ctx.lineTo(cx+Math.cos(a)*(r-2),cy+Math.sin(a)*(r-2));
+    ctx.lineTo(cx+Math.cos(a)*(r-1),cy+Math.sin(a)*(r-1));
     ctx.stroke();
   }
   // Cardinal
   var labs=[['N',0],['E',90],['S',180],['W',270]];
-  ctx.font='9px Arial'; ctx.fillStyle='rgba(200,220,255,0.7)';
+  ctx.font='8px Arial'; ctx.fillStyle='rgba(200,220,255,0.7)';
   ctx.textAlign='center'; ctx.textBaseline='middle';
   labs.forEach(function(l){
-    var a=toRad(l[1]-90);
-    ctx.fillText(l[0],cx+Math.cos(a)*(r-12),cy+Math.sin(a)*(r-12));
+    var a=toRad(l[1]-90)+camRot;
+    ctx.fillText(l[0],cx+Math.cos(a)*(r-8),cy+Math.sin(a)*(r-8));
   });
   // Wind arrow (direction it blows TO)
-  var wd=toRad(wind.dir-90);
-  var ax=cx+Math.cos(wd)*(r-14), ay=cy+Math.sin(wd)*(r-14);
-  ctx.strokeStyle='#55ccff'; ctx.lineWidth=2.5;
+  var wd=toRad(wind.dir-90)+camRot;
+  var ax=cx+Math.cos(wd)*(r-9), ay=cy+Math.sin(wd)*(r-9);
+  ctx.strokeStyle='#55ccff'; ctx.lineWidth=2;
   ctx.beginPath();
-  ctx.moveTo(cx-Math.cos(wd)*12,cy-Math.sin(wd)*12);
+  ctx.moveTo(cx-Math.cos(wd)*8,cy-Math.sin(wd)*8);
   ctx.lineTo(ax,ay); ctx.stroke();
   ctx.fillStyle='#55ccff';
   ctx.beginPath();
   ctx.moveTo(ax,ay);
-  ctx.lineTo(ax-Math.cos(wd-0.45)*11,ay-Math.sin(wd-0.45)*11);
-  ctx.lineTo(ax-Math.cos(wd+0.45)*11,ay-Math.sin(wd+0.45)*11);
+  ctx.lineTo(ax-Math.cos(wd-0.45)*7,ay-Math.sin(wd-0.45)*7);
+  ctx.lineTo(ax-Math.cos(wd+0.45)*7,ay-Math.sin(wd+0.45)*7);
+  ctx.closePath(); ctx.fill();
+  // Bow marker (常に画面上向き = 自艇の向き)
+  ctx.fillStyle='#ffee44';
+  ctx.beginPath();
+  ctx.moveTo(cx,cy-r-2); ctx.lineTo(cx-3,cy-r+3); ctx.lineTo(cx+3,cy-r+3);
   ctx.closePath(); ctx.fill();
   // Labels
-  ctx.fillStyle='#88ddff'; ctx.font='bold 10px Arial';
+  ctx.fillStyle='#88ddff'; ctx.font='bold 7px Arial';
   ctx.textAlign='center'; ctx.textBaseline='middle';
-  ctx.fillText('WIND',cx,cy-5);
-  ctx.font='9px Arial'; ctx.fillStyle='rgba(200,220,255,0.8)';
-  ctx.fillText(Math.round(wind.speed)+'kt',cx,cy+7);
+  ctx.fillText('WIND',cx,cy-4);
+  ctx.font='7px Arial'; ctx.fillStyle='rgba(200,220,255,0.8)';
+  ctx.fillText(Math.round(wind.speed)+'kt',cx,cy+5);
 }
 
 // Speedometer: top-right
@@ -1150,34 +1314,59 @@ function drawSpeedometer(){
 
 // Sail trim bar: center, above touch buttons
 function drawSailTrimBar(){
-  var bx=W/2, by=H-128, bw=200, bh=38;
-  ctx.fillStyle='rgba(10,30,60,0.82)';
-  roundRect(bx-bw/2,by-bh/2,bw,bh,10); ctx.fill();
-  ctx.fillStyle='rgba(200,220,255,0.8)'; ctx.font='10px Arial';
+  var bx=W/2, by=H-90, bw=300, bh=64;
+  ctx.fillStyle='rgba(10,30,60,0.85)';
+  roundRect(bx-bw/2,by-bh/2,bw,bh,14); ctx.fill();
+  ctx.strokeStyle='rgba(140,190,255,0.25)'; ctx.lineWidth=1.5;
+  roundRect(bx-bw/2,by-bh/2,bw,bh,14); ctx.stroke();
+
+  ctx.fillStyle='rgba(210,230,255,0.9)'; ctx.font='bold 14px Arial';
   ctx.textAlign='center'; ctx.textBaseline='top';
-  ctx.fillText('セール調整',bx,by-bh/2+4);
-  var barW=155,barH=9,barX=bx-barW/2,barY=by+4;
-  ctx.fillStyle='rgba(255,255,255,0.12)';
-  roundRect(barX,barY,barW,barH,4); ctx.fill();
+  ctx.fillText('セール調整',bx,by-bh/2+7);
+
+  var barW=250,barH=18,barX=bx-barW/2,barY=by+4;
+  ctx.fillStyle='rgba(255,255,255,0.14)';
+  roundRect(barX,barY,barW,barH,7); ctx.fill();
+
   var awa=getAWA();
-  var optR=Math.min(Math.abs(awa)/2,80)/85;
-  ctx.fillStyle='#44ff88'; ctx.fillRect(barX+optR*barW-2,barY-3,4,barH+6);
+  var optPos=Math.min(Math.abs(awa)/2,80);
+  var optR=optPos/85;
+  var tol=10; // 適正範囲の許容幅(trim単位)
+  var zoneW=(tol*2/85)*barW;
+  var zoneX=barX+optR*barW-zoneW/2;
+  // 適正ゾーン（帯で表示）
+  ctx.fillStyle='rgba(68,255,136,0.35)';
+  roundRect(zoneX,barY,zoneW,barH,7); ctx.fill();
+  ctx.strokeStyle='rgba(68,255,136,0.9)'; ctx.lineWidth=2;
+  roundRect(zoneX,barY,zoneW,barH,7); ctx.stroke();
+
   var curR=boat.trim/85, curX=barX+curR*barW;
-  ctx.fillStyle='white';
-  roundRect(curX-5,barY-4,10,barH+8,3); ctx.fill();
-  var err=Math.abs(boat.trim-Math.min(Math.abs(awa)/2,80));
-  if(err<10){ ctx.strokeStyle='#44ff88'; ctx.lineWidth=1.5; roundRect(curX-5,barY-4,10,barH+8,3); ctx.stroke(); }
+  var err=Math.abs(boat.trim-optPos);
+  var inZone=err<tol;
+  // 現在位置のスライダー（ハンドル）
+  ctx.fillStyle=inZone?'#44ff88':'white';
+  roundRect(curX-9,barY-6,18,barH+12,6); ctx.fill();
+  if(inZone){
+    ctx.strokeStyle='#ffffff'; ctx.lineWidth=2;
+    roundRect(curX-9,barY-6,18,barH+12,6); ctx.stroke();
+  }
+
+  ctx.fillStyle=inZone?'#44ff88':'rgba(210,230,255,0.75)';
+  ctx.font='bold 12px Arial'; ctx.textAlign='center'; ctx.textBaseline='bottom';
+  ctx.fillText(inZone?'適正！':'調整中',bx,by+bh/2-4);
 }
 
-// Point of sail badge: just above bottom-right corner
+// Point of sail badge: セール調整バーの真上・中央に配置
 function drawPointOfSailBadge(){
   var awa=getAWA(), pos=pointOfSail(awa);
-  var bw=158,bh=28,bx=W-8,by=H-120;
-  ctx.fillStyle='rgba(10,30,60,0.82)';
-  roundRect(bx-bw,by-bh/2,bw,bh,8); ctx.fill();
-  ctx.fillStyle=pos.col; ctx.font='bold 11px Arial';
+  var bw=190,bh=34,bx=W/2,by=H-146;
+  ctx.fillStyle='rgba(10,30,60,0.85)';
+  roundRect(bx-bw/2,by-bh/2,bw,bh,10); ctx.fill();
+  ctx.strokeStyle='rgba(140,190,255,0.25)'; ctx.lineWidth=1.5;
+  roundRect(bx-bw/2,by-bh/2,bw,bh,10); ctx.stroke();
+  ctx.fillStyle=pos.col; ctx.font='bold 15px Arial';
   ctx.textAlign='center'; ctx.textBaseline='middle';
-  ctx.fillText(pos.name,bx-bw/2,by);
+  ctx.fillText(pos.name,bx,by);
 }
 
 // Lap / timer HUD: top center
@@ -1216,7 +1405,11 @@ function drawResultScreen(){
     if(gameState.rivalFinishTime>0){
       var diff=gameState.rivalFinishTime-gameState.playerFinishTime;
       ctx.fillStyle='#88ffaa'; ctx.font='16px Arial';
-      ctx.fillText('ライバルより '+diff.toFixed(1)+'秒 速い！',W/2,H/2+20);
+      if(diff>=0){
+        ctx.fillText('ライバルより '+diff.toFixed(1)+'秒 速い！',W/2,H/2+20);
+      } else {
+        ctx.fillText('ライバルの後だったが時間内にゴール！',W/2,H/2+20);
+      }
     }
     ctx.fillStyle='#ffdd44'; ctx.font='bold 18px Arial';
     ctx.fillText('次のステージへ → Stage '+(stageNum+1)+': '+
@@ -1409,8 +1602,8 @@ function update(ts){
     if(boat.spd<0) boat.spd=0;
 
     var rad=toRad(boat.hdg-90);
-    boat.x+=Math.cos(rad)*boat.spd*dt*5.5;
-    boat.y+=Math.sin(rad)*boat.spd*dt*5.5;
+    boat.x+=Math.cos(rad)*boat.spd*dt*6.2;
+    boat.y+=Math.sin(rad)*boat.spd*dt*6.2;
     boat.x=Math.max(20,Math.min(WORLD_W-20,boat.x));
     boat.y=Math.max(20,Math.min(WORLD_H-20,boat.y));
 
@@ -1418,7 +1611,7 @@ function update(ts){
 
     var tb=buoys[gameState.buoyIdx];
     var ddx=boat.x-tb.x, ddy=boat.y-tb.y;
-    if(ddx*ddx+ddy*ddy<64*64){
+    if(ddx*ddx+ddy*ddy<80*80){
       gameState.hitFlashes.push({x:tb.x,y:tb.y,col:tb.col,age:0,maxAge:0.8});
       tb.done=true; gameState.buoyIdx++;
       gameState.timer=Math.min(gameState.timer+BUOY_BONUS,TIMER_START+BUOY_BONUS*9);
@@ -1431,11 +1624,10 @@ function update(ts){
         }
         buoys.forEach(function(b){b.done=false;});
         if(gameState.lap>=MAX_LAPS){
-          // プレイヤーゴール
+          // プレイヤーゴール：タイムが残っていれば自機のゴールで VICTORY
           gameState.playerFinishTime=(Date.now()-gameState.startTime)/1000;
           gameState.phase='result';
-          // ライバルがすでにゴールしていれば LOSE、そうでなければ VICTORY
-          gameState.result=rival.finished?'lose_rival':'victory';
+          gameState.result='victory';
           gameState.elapsed=gameState.playerFinishTime;
         }
       }
@@ -1454,6 +1646,7 @@ function update(ts){
     updateRival(dt);
   }
   updateWakes(dt);
+  updateWindParticles(dt);
   updateRockHits(dt);
   if(gameState.phase==='racing') checkRockCollision(dt);
   // カモメ SE
@@ -1477,6 +1670,7 @@ function update(ts){
   drawWakeParticles(wakeParticles, true);
   drawRival();
   drawBoat();
+  drawSailForces();
   drawRockHits();     // 岩当たりエフェクト
   drawClouds();          // 雲レイヤー（ゲーム世界とHUDの間）
   // HUD (non-overlapping layout)
