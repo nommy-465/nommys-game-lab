@@ -219,7 +219,7 @@ function updateWindParticles(dt){
   windFieldTime+=dt;
   windParticles.forEach(function(p){
     var w=windAt(p.x,p.y);
-    var rad=toRad(w.dir-90);
+    var rad=toRad(w.dir+90); // wind.dirは「吹いてくる方向」なので実際の移動は+180
     var spd=w.speed*6;
     p.x+=Math.cos(rad)*spd*dt;
     p.y+=Math.sin(rad)*spd*dt;
@@ -586,8 +586,8 @@ function makeCloudPuffs(sz){
 }
 
 function updateClouds(dt){
-  // 雲は風の方向・速度でドリフト（カメラと独立）
-  var wd=toRad(wind.dir);
+  // 雲は風の吹いていく方向・速度でドリフト（カメラと独立）。wind.dirは「吹いてくる方向」なので+180
+  var wd=toRad(wind.dir+180);
   var spd=wind.speed*1.1; // 少し速く流す
   cloudDrift.x=(cloudDrift.x+Math.cos(wd)*spd*dt*3)%CLOUD_TILE;
   cloudDrift.y=(cloudDrift.y+Math.sin(wd)*spd*dt*3)%CLOUD_TILE;
@@ -1267,8 +1267,8 @@ function drawWindCompass(){
     var a=toRad(l[1]-90)+camRot;
     ctx.fillText(l[0],cx+Math.cos(a)*(r-8),cy+Math.sin(a)*(r-8));
   });
-  // Wind arrow (direction it blows TO)
-  var wd=toRad(wind.dir-90)+camRot;
+  // Wind arrow (wind.dirは「吹いてくる方向」。矢印は実際に空気が流れていく向き=+180を表示)
+  var wd=toRad(wind.dir+180-90)+camRot;
   var ax=cx+Math.cos(wd)*(r-9), ay=cy+Math.sin(wd)*(r-9);
   ctx.strokeStyle='#55ccff'; ctx.lineWidth=2;
   ctx.beginPath();
