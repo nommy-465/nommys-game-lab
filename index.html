@@ -264,6 +264,138 @@ main {
 }
 
 /* ════════════════════════════════════════
+   ARCADE STAGE SELECT
+════════════════════════════════════════ */
+.stage-arcade {
+  margin-bottom:28px;
+  padding:16px;
+  background:
+    linear-gradient(135deg,rgba(255,64,129,.09),rgba(29,233,182,.045) 48%,rgba(255,202,40,.07)),
+    rgba(8,0,18,.78);
+  border:1px solid rgba(255,245,240,.08);
+  border-top:2px solid rgba(255,64,129,.42);
+  border-bottom:2px solid rgba(29,233,182,.28);
+  border-radius:6px;
+  box-shadow:0 0 28px rgba(255,64,129,.08), inset 0 0 24px rgba(29,233,182,.04);
+}
+.stage-arcade-top {
+  display:flex; align-items:center; justify-content:space-between;
+  gap:12px; margin-bottom:12px; flex-wrap:wrap;
+}
+.stage-arcade-label {
+  font-family:'Press Start 2P',monospace; font-size:.48rem;
+  color:rgba(255,202,40,.65); letter-spacing:.18em;
+  text-shadow:0 0 10px rgba(255,202,40,.35);
+}
+.stage-arcade-help {
+  font-family:'VT323',monospace; font-size:1.05rem;
+  color:rgba(255,245,240,.45); letter-spacing:.08em;
+}
+.stage-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
+  gap:10px;
+}
+.stage-sign {
+  appearance:none; border:1px solid rgba(255,245,240,.1);
+  background:rgba(9,4,22,.86);
+  border-radius:5px;
+  padding:7px;
+  min-height:128px;
+  cursor:pointer;
+  color:var(--text);
+  text-align:left;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  transition:transform .2s, border-color .2s, box-shadow .2s, filter .2s;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.02);
+}
+.stage-sign:hover,
+.stage-sign.active {
+  transform:translateY(-3px);
+  border-color:var(--sign-color,#ffca28);
+  box-shadow:0 0 18px rgba(255,64,129,.16),0 8px 24px rgba(0,0,0,.35),inset 0 0 18px rgba(255,255,255,.035);
+  filter:brightness(1.08);
+}
+.stage-sign.active {
+  background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(9,4,22,.92));
+}
+.stage-sign-img {
+  width:100%;
+  aspect-ratio:16/9;
+  overflow:hidden;
+  background:var(--sky-deep);
+  border-radius:3px;
+  border:1px solid rgba(255,255,255,.08);
+}
+.stage-sign-img img {
+  width:100%; height:100%; object-fit:cover; object-position:center top; display:block;
+}
+.stage-sign-num {
+  font-family:'Press Start 2P',monospace;
+  font-size:.38rem;
+  color:rgba(253,203,110,.55);
+  letter-spacing:.16em;
+}
+.stage-sign-title {
+  font-family:'VT323',monospace;
+  font-size:1.05rem;
+  line-height:1;
+  letter-spacing:.06em;
+  color:var(--sign-color,#ffca28);
+  text-shadow:0 0 10px color-mix(in srgb,var(--sign-color,#ffca28) 45%,transparent);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.stage-sign-tag {
+  align-self:flex-start;
+  font-family:'Press Start 2P',monospace;
+  font-size:.34rem;
+  color:rgba(255,245,240,.5);
+  letter-spacing:.12em;
+}
+.stage-sign.soon {
+  justify-content:center;
+  align-items:center;
+  text-align:center;
+  border-style:dashed;
+  opacity:.74;
+}
+.stage-sign.soon .stage-sign-title {
+  white-space:normal;
+  color:rgba(255,202,40,.6);
+}
+.stage-detail-label {
+  font-family:'Press Start 2P',monospace;
+  font-size:.48rem;
+  color:rgba(29,233,182,.55);
+  letter-spacing:.18em;
+  margin:0 0 10px;
+  text-shadow:0 0 10px rgba(29,233,182,.28);
+}
+.stage-select-mode .game-card {
+  display:none;
+}
+.stage-select-mode .game-card.is-selected {
+  display:block;
+}
+.stage-select-mode .game-card.is-selected .gc-body {
+  display:block;
+}
+.stage-select-mode .game-card.is-selected .gc-screenshot {
+  border-right:none;
+  border-bottom:1px solid rgba(255,255,255,.06);
+  aspect-ratio:16/9;
+  min-height:0;
+}
+.stage-select-mode .game-card.is-selected .play-btn {
+  font-size:.84rem;
+  padding:14px 22px;
+}
+
+/* ════════════════════════════════════════
    GAME CARD — Main large layout
 ════════════════════════════════════════ */
 .game-card {
@@ -665,6 +797,23 @@ footer p { font-family:'VT323',monospace; font-size:1rem; color:rgba(255,245,240
    RESPONSIVE
 ════════════════════════════════════════ */
 @media(max-width:640px){
+  .stage-arcade { padding:12px; margin-bottom:22px; }
+  .stage-arcade-top { align-items:flex-start; }
+  .stage-arcade-help { font-size:.95rem; line-height:1.4; }
+  .stage-grid {
+    display:flex;
+    overflow-x:auto;
+    gap:10px;
+    padding-bottom:6px;
+    scroll-snap-type:x proximity;
+    -webkit-overflow-scrolling:touch;
+  }
+  .stage-sign {
+    flex:0 0 148px;
+    min-height:122px;
+    scroll-snap-align:start;
+  }
+  .stage-sign-title { font-size:.98rem; }
   .gc-body { grid-template-columns:130px 1fr; }
   .gc-screenshot { aspect-ratio:unset; min-height:100px; }
   .gc-header { padding:8px 12px; gap:6px; }
@@ -673,6 +822,7 @@ footer p { font-family:'VT323',monospace; font-size:1rem; color:rgba(255,245,240
   .gc-tags { gap:3px; margin:2px 0 0; }
   .gc-tag { font-size:.82rem; padding:1px 6px; }
   .play-btn { font-size:.4rem !important; padding:7px 10px !important; letter-spacing:.06em !important; }
+  .stage-select-mode .game-card.is-selected .play-btn { font-size:.6rem !important; padding:10px 14px !important; }
   .gc-controls { padding:5px 10px; gap:2px 8px; }
   .ctrl-label { font-size:.4rem; }
   .ctrl-desc { font-size:.88rem; }
@@ -1054,8 +1204,66 @@ footer p { font-family:'VT323',monospace; font-size:1rem; color:rgba(255,245,240
 <!-- ═══════════════════════════════════════
      MAIN
 ════════════════════════════════════════ -->
-<main id="works">
+<main id="works" class="stage-select-mode">
   <div class="sec-head"><span>// SELECT STAGE</span></div>
+
+  <div class="stage-arcade" id="stageArcade">
+    <div class="stage-arcade-top">
+      <div class="stage-arcade-label">NEON ARCADE MENU</div>
+      <div class="stage-arcade-help">PICK YOUR NEON CABINET</div>
+    </div>
+    <div class="stage-grid" aria-label="Stage select">
+      <button class="stage-sign" type="button" data-stage="0" style="--sign-color:#ff6b6b">
+        <span class="stage-sign-img"><img src="screenshot_baywatch.png" alt="BAYWATCH"></span>
+        <span class="stage-sign-num">STAGE 01</span>
+        <span class="stage-sign-title">BAYWATCH</span>
+        <span class="stage-sign-tag">RESCUE</span>
+      </button>
+      <button class="stage-sign" type="button" data-stage="1" style="--sign-color:#1de9b6">
+        <span class="stage-sign-img"><img src="screenshot_tag_bm3_final.png" alt="ALDEBARAN"></span>
+        <span class="stage-sign-num">STAGE 02</span>
+        <span class="stage-sign-title">ALDEBARAN</span>
+        <span class="stage-sign-tag">COLLECT</span>
+      </button>
+      <button class="stage-sign" type="button" data-stage="2" style="--sign-color:#ffca28">
+        <span class="stage-sign-img"><img src="screenshot_starship_final.png" alt="STARSHIP TROOPERS"></span>
+        <span class="stage-sign-num">STAGE 03</span>
+        <span class="stage-sign-title">STARSHIP TROOPERS</span>
+        <span class="stage-sign-tag">THREE.JS</span>
+      </button>
+      <button class="stage-sign" type="button" data-stage="3" style="--sign-color:#a29bfe">
+        <span class="stage-sign-img"><img src="screenshot_blockbreaker3d.png" alt="3D BLOCK BREAKER"></span>
+        <span class="stage-sign-num">STAGE 04</span>
+        <span class="stage-sign-title">3D BLOCK BREAKER</span>
+        <span class="stage-sign-tag">BLOCK</span>
+      </button>
+      <button class="stage-sign" type="button" data-stage="4" style="--sign-color:#00b4d8">
+        <span class="stage-sign-img"><img src="screenshot_sailing.png" alt="SAILING RACE"></span>
+        <span class="stage-sign-num">STAGE 05</span>
+        <span class="stage-sign-title">SAILING RACE</span>
+        <span class="stage-sign-tag">WIND</span>
+      </button>
+      <button class="stage-sign" type="button" data-stage="5" style="--sign-color:#ff7ab6">
+        <span class="stage-sign-img"><img src="town_walker_rpg.png" alt="じゃんけん街道 登校編"></span>
+        <span class="stage-sign-num">STAGE 06</span>
+        <span class="stage-sign-title">じゃんけん街道</span>
+        <span class="stage-sign-tag">JANKEN</span>
+      </button>
+      <button class="stage-sign active" type="button" data-stage="6" style="--sign-color:#4be3ff">
+        <span class="stage-sign-img"><img src="in-the-space.png" alt="THE WEAKEST ASTRONAUT"></span>
+        <span class="stage-sign-num">STAGE 07</span>
+        <span class="stage-sign-title">WEAKEST ASTRONAUT</span>
+        <span class="stage-sign-tag">SPACE</span>
+      </button>
+      <button class="stage-sign soon" type="button" data-stage="soon" style="--sign-color:#ffca28">
+        <span class="stage-sign-num">STAGE ??</span>
+        <span class="stage-sign-title">COMING SOON</span>
+        <span class="stage-sign-tag">NEXT GAME</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="stage-detail-label">NOW SELECTED</div>
 
   <!-- ══════════ GAME 01: BAYWATCH ══════════ -->
   <div class="game-card">
@@ -1538,7 +1746,7 @@ footer p { font-family:'VT323',monospace; font-size:1rem; color:rgba(255,245,240
   </div><!-- /game-card 06 -->
 
   <!-- ══════════ GAME 07: THE WEAKEST ASTRONAUT ══════════ -->
-  <div class="game-card">
+  <div class="game-card is-selected">
     <div class="gc-stripe" style="background:linear-gradient(90deg,#4be3ff,#ff5ca8,#7c5cff)"></div>
     <div class="gc-header" style="background:linear-gradient(135deg,rgba(75,227,255,.06) 0%,transparent 70%)">
       <div class="gc-header-meta">
@@ -1761,6 +1969,59 @@ function toggleAccordion(btn) {
     body.classList.add('open');
   }
 }
+
+/* ── ARCADE STAGE SELECT ── */
+(function() {
+  const works = document.getElementById('works');
+  const arcade = document.getElementById('stageArcade');
+  if (!works || !arcade) return;
+
+  const cards = Array.from(works.querySelectorAll('.game-card'));
+  const signs = Array.from(arcade.querySelectorAll('.stage-sign'));
+  const detailLabel = works.querySelector('.stage-detail-label');
+
+  function closeCardAccordions(card) {
+    card.querySelectorAll('.accordion-btn').forEach(btn => {
+      btn.setAttribute('aria-expanded', 'false');
+      const body = btn.nextElementSibling;
+      if (body) body.classList.remove('open');
+    });
+  }
+
+  function selectStage(index, shouldScroll) {
+    const card = cards[index];
+    if (!card) return;
+
+    cards.forEach(c => {
+      c.classList.remove('is-selected');
+      closeCardAccordions(c);
+    });
+    signs.forEach(sign => {
+      sign.classList.toggle('active', sign.dataset.stage === String(index));
+    });
+
+    card.classList.add('is-selected');
+    if (detailLabel) detailLabel.textContent = 'NOW SELECTED';
+
+    if (shouldScroll) {
+      card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+
+  signs.forEach(sign => {
+    sign.addEventListener('click', () => {
+      if (sign.dataset.stage === 'soon') {
+        const soon = works.querySelector('.coming-soon');
+        if (soon) soon.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+      selectStage(Number(sign.dataset.stage), true);
+    });
+  });
+
+  const initial = signs.find(sign => sign.classList.contains('active') && sign.dataset.stage !== 'soon');
+  if (initial) selectStage(Number(initial.dataset.stage), false);
+})();
 
 /* ═══════════════════════════════════════
    8-BIT RESORT BGM  (Web Audio API)
