@@ -257,6 +257,41 @@ header { position:relative; z-index:1; overflow:hidden; }
 .sc-teal   { background:rgba(29,233,182,.08);  border:1px solid var(--neon-teal);   color:var(--neon-teal); }
 .sc-peach  { background:rgba(253,203,110,.08); border:1px solid var(--block-peach); color:var(--block-peach); }
 .sc-sky    { background:rgba(116,185,255,.08); border:1px solid var(--block-sky);   color:var(--block-sky); }
+.sub-note {
+  margin-top:12px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.sub-note-text {
+  font-family:'DotGothic16','VT323',monospace;
+  font-size:.92rem;
+  line-height:1.6;
+  letter-spacing:.06em;
+  color:rgba(255,245,240,.58);
+}
+.sub-note-link {
+  display:inline-flex;
+  align-items:center;
+  min-height:28px;
+  padding:5px 10px;
+  font-family:'Press Start 2P',monospace;
+  font-size:.42rem;
+  letter-spacing:.08em;
+  color:var(--sky-gold);
+  text-decoration:none;
+  border:1px solid rgba(255,202,40,.42);
+  border-radius:3px;
+  background:rgba(255,202,40,.07);
+  text-shadow:0 0 8px rgba(255,202,40,.5);
+  box-shadow:0 0 14px rgba(255,64,129,.12);
+}
+.sub-note-link:hover {
+  color:var(--neon-teal);
+  border-color:rgba(29,233,182,.5);
+  background:rgba(29,233,182,.07);
+}
 
 /* ════════════════════════════════════════
    MAIN / SELECT STAGE
@@ -1260,6 +1295,10 @@ footer p { font-family:'VT323',monospace; font-size:1rem; color:rgba(255,245,240
         <span class="sub-chip sc-teal">AI研究中</span>
         <span class="sub-chip sc-peach">60年代生まれ</span>
         <span class="sub-chip sc-sky">Powered by Claude</span>
+      </div>
+      <div class="sub-note">
+        <span class="sub-note-text">ゲームづくりの裏側は、これからNOTEに少しずつ。</span>
+        <a class="sub-note-link" href="https://note.com/nommy_465" target="_blank" rel="noopener noreferrer">▷ READ NOTE</a>
       </div>
     </div>
   </div>
