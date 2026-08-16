@@ -308,10 +308,37 @@ main {
   color:rgba(255,245,240,.45); letter-spacing:.08em;
 }
 .stage-grid {
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
+  display:flex;
+  overflow-x:auto;
   gap:10px;
+  padding:0 34px 8px;
+  scroll-snap-type:x proximity;
+  -webkit-overflow-scrolling:touch;
 }
+.stage-scroll-wrap {
+  position:relative;
+}
+.stage-scroll-arrow {
+  position:absolute;
+  top:50%;
+  z-index:2;
+  width:34px;
+  height:54px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  transform:translateY(-50%);
+  pointer-events:none;
+  font-family:'Press Start 2P',monospace;
+  font-size:1.15rem;
+  color:var(--sky-gold);
+  background:rgba(8,0,18,.72);
+  border:1px solid rgba(255,202,40,.38);
+  text-shadow:0 0 10px rgba(255,202,40,.9);
+  box-shadow:0 0 18px rgba(255,64,129,.2), inset 0 0 12px rgba(255,202,40,.08);
+}
+.stage-scroll-arrow.left { left:-8px; }
+.stage-scroll-arrow.right { right:-8px; }
 .stage-sign {
   appearance:none; border:1px solid rgba(255,245,240,.1);
   background:rgba(9,4,22,.86);
@@ -323,7 +350,9 @@ main {
   text-align:left;
   display:flex;
   flex-direction:column;
+  flex:0 0 156px;
   gap:6px;
+  scroll-snap-align:start;
   transition:transform .2s, border-color .2s, box-shadow .2s, filter .2s;
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.02);
 }
@@ -371,17 +400,6 @@ main {
   font-size:.34rem;
   color:rgba(255,245,240,.5);
   letter-spacing:.12em;
-}
-.stage-sign.soon {
-  justify-content:center;
-  align-items:center;
-  text-align:center;
-  border-style:dashed;
-  opacity:.74;
-}
-.stage-sign.soon .stage-sign-title {
-  white-space:normal;
-  color:rgba(255,202,40,.6);
 }
 .stage-detail-label {
   font-family:'Press Start 2P',monospace;
@@ -749,7 +767,7 @@ kbd {
 .dc-01{background:var(--block-coral);} .dc-02{background:var(--neon-teal);} .dc-03{background:var(--sky-gold);}
 
 /* ════════════════════════════════════════
-   COMING SOON
+   PHILOSOPHY
 ════════════════════════════════════════ */
 .lab-philosophy {
   margin:40px 0 8px;
@@ -770,12 +788,41 @@ kbd {
   text-shadow:0 0 14px rgba(255,202,40,.42);
 }
 .coming-soon {
-  border:2px dashed rgba(255,107,107,.25); border-radius:6px;
-  padding:30px 28px; text-align:center;
-  background:rgba(255,107,107,.03); position:relative; overflow:hidden;
+  max-width:520px;
+  margin:12px auto 0;
+  border:1px dashed rgba(255,107,107,.28);
+  border-radius:6px;
+  padding:14px 18px;
+  text-align:center;
+  background:rgba(255,107,107,.03);
+  position:relative;
+  overflow:hidden;
 }
-.coming-soon::before { content:'🌴'; position:absolute; left:20px; bottom:14px; font-size:1.8rem; opacity:.12; }
-.coming-soon::after  { content:'🌴'; position:absolute; right:20px; bottom:14px; font-size:1.8rem; opacity:.12; }
+.coming-soon::before,
+.coming-soon::after {
+  content:'';
+  position:absolute;
+  bottom:8px;
+  width:28px;
+  height:1px;
+  background:rgba(253,203,110,.18);
+}
+.coming-soon::before { left:14px; }
+.coming-soon::after { right:14px; }
+.coming-soon-stage {
+  font-family:'Press Start 2P',monospace;
+  font-size:.42rem;
+  color:rgba(253,203,110,.38);
+  margin-bottom:8px;
+  letter-spacing:.16em;
+}
+.coming-soon p {
+  font-family:'VT323',monospace;
+  font-size:1.05rem;
+  line-height:1.45;
+  color:rgba(255,245,240,.34);
+  letter-spacing:.1em;
+}
 
 /* ════════════════════════════════════════
    FOOTER
@@ -817,17 +864,19 @@ footer p { font-family:'VT323',monospace; font-size:1rem; color:rgba(255,245,240
   .stage-arcade-top { align-items:flex-start; }
   .stage-arcade-help { font-size:.95rem; line-height:1.4; }
   .stage-grid {
-    display:flex;
-    overflow-x:auto;
     gap:10px;
-    padding-bottom:6px;
-    scroll-snap-type:x proximity;
-    -webkit-overflow-scrolling:touch;
+    padding:0 26px 6px;
   }
+  .stage-scroll-arrow {
+    width:28px;
+    height:48px;
+    font-size:.9rem;
+  }
+  .stage-scroll-arrow.left { left:0; }
+  .stage-scroll-arrow.right { right:0; }
   .stage-sign {
     flex:0 0 148px;
     min-height:122px;
-    scroll-snap-align:start;
   }
   .stage-sign-title { font-size:.98rem; }
   .gc-body { grid-template-columns:130px 1fr; }
@@ -1235,7 +1284,10 @@ footer p { font-family:'VT323',monospace; font-size:1rem; color:rgba(255,245,240
       <div class="stage-arcade-label">NEON ARCADE MENU</div>
       <div class="stage-arcade-help">PICK YOUR NEON CABINET</div>
     </div>
-    <div class="stage-grid" aria-label="Stage select">
+    <div class="stage-scroll-wrap">
+      <div class="stage-scroll-arrow left" aria-hidden="true">‹</div>
+      <div class="stage-scroll-arrow right" aria-hidden="true">›</div>
+      <div class="stage-grid" aria-label="Stage select">
       <button class="stage-sign" type="button" data-stage="0" style="--sign-color:#ff6b6b">
         <span class="stage-sign-img"><img src="screenshot_baywatch.png" alt="BAYWATCH"></span>
         <span class="stage-sign-num">STAGE 01</span>
@@ -1278,11 +1330,7 @@ footer p { font-family:'VT323',monospace; font-size:1rem; color:rgba(255,245,240
         <span class="stage-sign-title">WEAKEST ASTRONAUT</span>
         <span class="stage-sign-tag">SPACE</span>
       </button>
-      <button class="stage-sign soon" type="button" data-stage="soon" style="--sign-color:#ffca28">
-        <span class="stage-sign-num">STAGE ??</span>
-        <span class="stage-sign-title">COMING SOON</span>
-        <span class="stage-sign-tag">NEXT GAME</span>
-      </button>
+      </div>
     </div>
   </div>
 
@@ -1850,15 +1898,11 @@ footer p { font-family:'VT323',monospace; font-size:1rem; color:rgba(255,245,240
     </div><!-- /gc-body -->
   </div><!-- /game-card 07 -->
 
-  <!-- COMING SOON -->
   <p class="lab-philosophy">AIと一緒に、もう一度ゲームをつくる。<span>OLD CREATOR</span>の実験は続く。</p>
   <div class="sec-head"><span>// COMING SOON</span></div>
   <div class="coming-soon">
-    <div style="font-family:'Press Start 2P',monospace;font-size:.6rem;color:rgba(253,203,110,.35);margin-bottom:14px;letter-spacing:.2em">STAGE — ??</div>
-    <div style="font-size:2.5rem;margin-bottom:12px;opacity:.2">🎮</div>
-    <p style="font-family:'VT323',monospace;font-size:1.25rem;color:rgba(255,245,240,.28);letter-spacing:.12em">
-      次のゲームは思案中。AIと対話しながら、今日もコンセプトを練っている。
-    </p>
+    <div class="coming-soon-stage">STAGE — ??</div>
+    <p>次のゲームは思案中。AIと対話しながら、今日もコンセプトを練っている。</p>
   </div>
 </main>
 
@@ -2033,11 +2077,6 @@ function toggleAccordion(btn) {
 
   signs.forEach(sign => {
     sign.addEventListener('click', () => {
-      if (sign.dataset.stage === 'soon') {
-        const soon = works.querySelector('.coming-soon');
-        if (soon) soon.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        return;
-      }
       selectStage(Number(sign.dataset.stage), true);
     });
   });
