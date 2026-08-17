@@ -1,48 +1,39 @@
 
 <style>
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-#wrap{position:relative;width:100%;max-width:390px;margin:0 auto;background:#050510;border-radius:18px;overflow:hidden;box-shadow:0 0 60px rgba(30,80,255,0.2);display:flex;flex-direction:column;}
-#gameArea{position:relative;width:100%;aspect-ratio:9/13;flex-shrink:0;}
-#c{display:block;width:100%;height:100%;touch-action:none;}
-#hud{position:absolute;inset:0;pointer-events:none;}
-#scoreEl{position:absolute;top:14px;left:16px;color:#fff;font-size:14px;font-weight:700;font-family:monospace;text-shadow:0 0 10px rgba(80,180,255,0.9),0 1px 3px #000;}
-#livesEl{position:absolute;top:14px;right:16px;color:#ffd700;font-size:14px;font-weight:700;font-family:monospace;text-shadow:0 0 10px rgba(255,200,0,0.9),0 1px 3px #000;}
-#overlay{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#fff;font-size:14px;font-weight:600;text-align:center;font-family:monospace;background:rgba(4,4,28,0.88);padding:18px 26px;border-radius:14px;border:1px solid rgba(80,140,255,0.4);line-height:2.1;pointer-events:auto;backdrop-filter:blur(6px);white-space:nowrap;}
-#popup{position:absolute;display:none;font-size:28px;font-weight:700;font-family:monospace;pointer-events:none;white-space:nowrap;text-shadow:0 0 14px currentColor,0 2px 6px #000;}
-#controls{flex-shrink:0;width:100%;background:linear-gradient(180deg,#080818 0%,#040410 100%);border-top:1px solid rgba(60,100,255,0.18);padding:10px 16px 14px;display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;}
-#dpad{display:grid;grid-template-columns:64px 64px 64px;grid-template-rows:64px 64px;gap:6px;justify-items:center;align-items:center;}
-.btn{width:64px;height:64px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:1px;background:rgba(255,255,255,0.09);border:1.5px solid rgba(255,255,255,0.22);border-radius:12px;color:#fff;font-size:22px;cursor:pointer;user-select:none;}
-.btn:active{background:rgba(255,255,255,0.24);}
-.btn span.lbl{font-size:9px;color:rgba(255,255,255,0.45);font-family:monospace;letter-spacing:0.5px;}
-#bU{grid-column:2;grid-row:1;background:rgba(60,160,255,0.14);border-color:rgba(100,200,255,0.35);}
-#bD{grid-column:2;grid-row:2;}
-#bL{grid-column:1;grid-row:2;}
-#bR{grid-column:3;grid-row:2;}
-#fireWrap{display:flex;align-items:center;justify-content:center;}
-#bFire{width:90px;height:90px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:2px;background:radial-gradient(circle at 40% 35%,rgba(255,100,100,0.55),rgba(160,10,10,0.4));border:2px solid rgba(255,110,110,0.75);border-radius:50%;color:#fdd;font-size:15px;font-weight:800;font-family:monospace;letter-spacing:1px;cursor:pointer;user-select:none;box-shadow:0 0 24px rgba(255,50,50,0.35);}
-#bFire:active{background:radial-gradient(circle at 40% 35%,rgba(255,150,150,0.7),rgba(200,30,30,0.55));}
-.fire-icon{font-size:22px;}
+#game-wrap { position:relative; width:100%; user-select:none; }
+#c { display:block; width:100%; height:420px; border-radius:12px; touch-action:none; }
+#hud { position:absolute; top:0; left:0; width:100%; height:420px; pointer-events:none; border-radius:12px; overflow:hidden; }
+#score { position:absolute; top:12px; left:16px; color:#fff; font-size:13px; font-weight:500; font-family:monospace; text-shadow:0 1px 4px #000; }
+#lives { position:absolute; top:12px; right:16px; color:#fff; font-size:13px; font-weight:500; font-family:monospace; text-shadow:0 1px 4px #000; }
+#overlay { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:#fff; font-size:14px; font-weight:500; text-align:center; font-family:monospace; background:rgba(0,0,0,0.72); padding:16px 24px; border-radius:10px; border:0.5px solid rgba(255,255,255,0.2); line-height:2.2; pointer-events:auto; }
+#popup { position:absolute; display:none; font-size:36px; font-weight:500; font-family:monospace; pointer-events:none; white-space:nowrap; }
+#controls { display:flex; justify-content:space-between; align-items:center; padding:12px 16px 8px 16px; background:#0d0d22; border-radius:0 0 12px 12px; touch-action:none; }
+#dpad { position:relative; width:192px; height:192px; flex-shrink:0; }
+.btn { display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,0.16); border:1.5px solid rgba(255,255,255,0.38); border-radius:10px; color:#fff; font-size:26px; cursor:pointer; -webkit-tap-highlight-color:transparent; user-select:none; position:absolute; }
+#bU { width:80px; height:80px; top:0; left:56px; }
+#bD { width:80px; height:80px; bottom:0; left:56px; }
+#bL { width:80px; height:80px; top:56px; left:0; }
+#bR { width:80px; height:80px; top:56px; right:0; }
+#bFire { width:100px; height:100px; background:rgba(255,50,50,0.4); border:2.5px solid rgba(255,130,130,0.8); border-radius:50%; color:#fcc; font-size:16px; font-weight:700; font-family:monospace; cursor:pointer; -webkit-tap-highlight-color:transparent; user-select:none; flex-shrink:0; }
 </style>
-<div id="wrap">
-  <div id="gameArea">
-    <canvas id="c"></canvas>
-    <div id="hud">
-      <div id="scoreEl">SCORE: 0</div>
-      <div id="livesEl">♦ ♦ ♦</div>
-      <div id="overlay">↑前進 ↓後退 ←→回転<br>FIREでレーザー発射<br><span style="font-size:11px;color:#88aaff;font-weight:400;">Tap to start</span></div>
-      <div id="popup"></div>
+<div id="game-wrap">
+  <canvas id="c"></canvas>
+  <div id="hud">
+    <div id="score">SCORE: 0</div>
+    <div id="lives">♦ ♦ ♦</div>
+    <div id="overlay">
+      ↑↓ 前進/後退　← → 回転<br>SPACE レーザー発射<br><span style="font-size:11px;color:#aaa">画面をタップしてスタート</span>
     </div>
+    <div id="popup"></div>
   </div>
   <div id="controls">
     <div id="dpad">
-      <button id="bU" class="btn"><span>▲</span><span class="lbl">FWD</span></button>
-      <button id="bL" class="btn"><span>◀</span><span class="lbl">ROT</span></button>
-      <button id="bD" class="btn"><span>▼</span><span class="lbl">BACK</span></button>
-      <button id="bR" class="btn"><span>▶</span><span class="lbl">ROT</span></button>
+      <button id="bU" class="btn">▲</button>
+      <button id="bD" class="btn">▼</button>
+      <button id="bL" class="btn">◀</button>
+      <button id="bR" class="btn">▶</button>
     </div>
-    <div id="fireWrap">
-      <button id="bFire"><span class="fire-icon">🔴</span><span>FIRE</span></button>
-    </div>
+    <button id="bFire">FIRE</button>
   </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -50,37 +41,39 @@
 (function(){ try {
 
 var canvas=document.getElementById('c');
-var scoreEl=document.getElementById('scoreEl');
-var livesEl=document.getElementById('livesEl');
+var scoreEl=document.getElementById('score');
+var livesEl=document.getElementById('lives');
 var overlay=document.getElementById('overlay');
 var popupEl=document.getElementById('popup');
 
 var renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:true});
-renderer.setClearColor(0x05050f,1);
+renderer.setClearColor(0x07071a,1);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
 var scene=new THREE.Scene();
-// ★ FOVを広げて球体が大きく見えるように
-var camera=new THREE.PerspectiveCamera(72,1,0.1,500);
+var camera=new THREE.PerspectiveCamera(60,1,0.1,500);
 
 function resize(){
-  var w=canvas.clientWidth,h=canvas.clientHeight;
-  if(!h||h<10)h=Math.round(w*13/9);
+  var w=canvas.clientWidth, h=420;
   renderer.setSize(w,h,false);
-  camera.aspect=w/h;camera.updateProjectionMatrix();
+  camera.aspect=w/h;
+  camera.updateProjectionMatrix();
 }
 resize();
-try{var ro=new ResizeObserver(function(){setTimeout(resize,30);});ro.observe(canvas);}catch(e){window.addEventListener('resize',function(){setTimeout(resize,50);});}
+window.addEventListener('resize',resize);
 
-var sv=[];for(var i=0;i<1400;i++)sv.push((Math.random()-.5)*320,(Math.random()-.5)*320,(Math.random()-.5)*320);
+// Stars
+var sv=[];for(var i=0;i<1200;i++)sv.push((Math.random()-.5)*300,(Math.random()-.5)*300,(Math.random()-.5)*300);
 var sg=new THREE.BufferGeometry();sg.setAttribute('position',new THREE.Float32BufferAttribute(sv,3));
-scene.add(new THREE.Points(sg,new THREE.PointsMaterial({color:0xffffff,size:0.38})));
+scene.add(new THREE.Points(sg,new THREE.PointsMaterial({color:0xffffff,size:0.4})));
 
-scene.add(new THREE.AmbientLight(0x334466,1.1));
-var sl=new THREE.DirectionalLight(0xaaccff,1.4);sl.position.set(50,70,30);scene.add(sl);
-var fl=new THREE.PointLight(0x2255ff,0.6,220);fl.position.set(-40,20,-40);scene.add(fl);
-var laserGlow=new THREE.PointLight(0xff2200,0,10);scene.add(laserGlow);
-var boomGlow=new THREE.PointLight(0xff8800,0,16);scene.add(boomGlow);
+// Lights
+scene.add(new THREE.AmbientLight(0x445566,1.0));
+var sl=new THREE.DirectionalLight(0xaabbff,1.3);sl.position.set(50,70,30);scene.add(sl);
+var fl=new THREE.PointLight(0x3366ff,0.5,200);fl.position.set(-40,20,-40);scene.add(fl);
+var laserGlow=new THREE.PointLight(0xff2200,0,8);scene.add(laserGlow);
+var boomGlow=new THREE.PointLight(0xff8800,0,14);scene.add(boomGlow);
 
+// Planet
 var PLANET_R=14;
 var pGeo=new THREE.IcosahedronGeometry(PLANET_R,3);
 var pa=pGeo.attributes.position;
@@ -100,6 +93,7 @@ function getSurface(dir){
   return hits.length>0?hits[0].point.clone():dir.clone().multiplyScalar(PLANET_R);
 }
 
+// Alien
 function buildAlien(){
   var root=new THREE.Group();
   var mB=new THREE.MeshPhongMaterial({color:0xff2222,emissive:0x440000,flatShading:true});
@@ -119,9 +113,11 @@ function buildAlien(){
   var tL=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.03,0.35,5),mB);tL.position.set(-0.28,0.88,0.1);tL.rotation.z=0.5;root.add(tL);
   var tR=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.03,0.35,5),mB);tR.position.set(0.28,0.88,0.1);tR.rotation.z=-0.5;root.add(tR);
   pt(new THREE.SphereGeometry(0.06,5,4),mS,-0.44,0.97,0.1);pt(new THREE.SphereGeometry(0.06,5,4),mS,0.44,0.97,0.1);
-  root._mB=mB;root._mC=mC;return root;
+  root._mB=mB;root._mC=mC;
+  return root;
 }
 
+// Astronaut
 function buildAstronaut(){
   var root=new THREE.Group();
   var mW=new THREE.MeshPhongMaterial({color:0xdddddd,flatShading:true,transparent:true,opacity:1});
@@ -147,48 +143,70 @@ function buildAstronaut(){
   var lL=new THREE.Mesh(new THREE.CylinderGeometry(0.14,0.12,0.46,5),mW);lL.position.set(-0.18,0.02,0);root.add(lL);
   var lR=new THREE.Mesh(new THREE.CylinderGeometry(0.14,0.12,0.46,5),mW);lR.position.set(0.18,0.02,0);root.add(lR);
   pt(new THREE.BoxGeometry(0.18,0.10,0.28),mO,-0.18,-0.21,0.05);pt(new THREE.BoxGeometry(0.18,0.10,0.28),mO,0.18,-0.21,0.05);
-  root.scale.setScalar(0.75);root._lL=lL;root._lR=lR;return root;
+  root.scale.setScalar(0.75);root._lL=lL;root._lR=lR;
+  return root;
 }
 
 var playerGroup=new THREE.Group();var astro=buildAstronaut();playerGroup.add(astro);scene.add(playerGroup);
 var walkT=0;
 
+// Coins
 var coinMeshes=[];
 for(var i=0;i<10;i++){var cm=new THREE.Mesh(new THREE.OctahedronGeometry(0.4,0),new THREE.MeshPhongMaterial({color:0xffd700,emissive:0x332200,flatShading:true}));scene.add(cm);coinMeshes.push(cm);}
 
-var EP=18,enemyPool=[];
+// Enemy pool
+var EP=18;var enemyPool=[];
 for(var i=0;i<EP;i++){var al=buildAlien();al.visible=false;scene.add(al);enemyPool.push({g:al,on:false,dir:new THREE.Vector3(0,0,1),ax:new THREE.Vector3(0,1,0),tv:0.012,mv:true,st:60,sc:1,tsc:1,gs:0,sp:false,jt:0,bt:Math.random()*Math.PI*2});}
 
+// Lasers
 var LR=PLANET_R+1.2,LTOT=Math.PI*3,LSPD=0.01875,LTRAIL=22;
 var lasers=[];
-for(var i=0;i<6;i++){var dd=[];for(var j=0;j<LTRAIL;j++){var ld=new THREE.Mesh(new THREE.SphereGeometry(0.07+0.05*(1-j/LTRAIL),4,3),new THREE.MeshBasicMaterial({color:0xff3333}));ld.visible=false;scene.add(ld);dd.push(ld);}lasers.push({on:false,angle:0,orig:new THREE.Vector3(),tang:new THREE.Vector3(),dots:dd,trail:[]});}
+for(var i=0;i<6;i++){
+  var dd=[];
+  for(var j=0;j<LTRAIL;j++){var ld=new THREE.Mesh(new THREE.SphereGeometry(0.07+0.05*(1-j/LTRAIL),4,3),new THREE.MeshBasicMaterial({color:0xff3333}));ld.visible=false;scene.add(ld);dd.push(ld);}
+  lasers.push({on:false,angle:0,orig:new THREE.Vector3(),tang:new THREE.Vector3(),dots:dd,trail:[]});
+}
 function gcPos(o,t,a,r){return o.clone().multiplyScalar(Math.cos(a)).addScaledVector(t,Math.sin(a)).normalize().multiplyScalar(r);}
 
+// Particles
 var PM=300,pts=[];
 for(var i=0;i<PM;i++)pts.push({on:false,x:0,y:0,z:0,vx:0,vy:0,vz:0,li:0,ml:1,r:1,g:0,b:0,sz:0.5});
 var pp=new Float32Array(PM*3),pc=new Float32Array(PM*3),ps=new Float32Array(PM);
 var ptGeo=new THREE.BufferGeometry();
-ptGeo.setAttribute('position',new THREE.BufferAttribute(pp,3));ptGeo.setAttribute('color',new THREE.BufferAttribute(pc,3));ptGeo.setAttribute('size',new THREE.BufferAttribute(ps,1));
+ptGeo.setAttribute('position',new THREE.BufferAttribute(pp,3));
+ptGeo.setAttribute('color',new THREE.BufferAttribute(pc,3));
+ptGeo.setAttribute('size',new THREE.BufferAttribute(ps,1));
 scene.add(new THREE.Points(ptGeo,new THREE.PointsMaterial({size:0.55,vertexColors:true,transparent:true,sizeAttenuation:true,depthWrite:false})));
 
-function boomP(pos){var n=0;for(var i=0;i<PM&&n<20;i++){var p=pts[i];if(p.on)continue;p.on=true;p.x=pos.x;p.y=pos.y;p.z=pos.z;var th=Math.random()*Math.PI*2,ph=Math.acos(2*Math.random()-1),s=0.22*(0.4+Math.random()*0.8);p.vx=Math.sin(ph)*Math.cos(th)*s;p.vy=Math.sin(ph)*Math.sin(th)*s;p.vz=Math.cos(ph)*s;p.ml=16+(Math.random()*16|0);p.li=0;var col=new THREE.Color().setHSL(0.04,1,.6+Math.random()*.3);p.r=col.r;p.g=col.g;p.b=col.b;p.sz=.4+Math.random()*.4;n++;}boomGlow.position.copy(pos);boomGlow.intensity=3;boomGlow.color.setHex(0xff4400);}
-function tickP(){for(var i=0;i<PM;i++){var p=pts[i];if(!p.on){pp[i*3]=9999;pp[i*3+1]=9999;pp[i*3+2]=9999;ps[i]=0;continue;}p.li++;var t=p.li/p.ml;if(t>=1){p.on=false;ps[i]=0;continue;}p.vx*=.87;p.vy*=.87;p.vz*=.87;p.x+=p.vx;p.y+=p.vy;p.z+=p.vz;pp[i*3]=p.x;pp[i*3+1]=p.y;pp[i*3+2]=p.z;var a=1-t;pc[i*3]=p.r*a;pc[i*3+1]=p.g*a;pc[i*3+2]=p.b*a;ps[i]=p.sz*(1-t*.7);}ptGeo.attributes.position.needsUpdate=true;ptGeo.attributes.color.needsUpdate=true;ptGeo.attributes.size.needsUpdate=true;if(boomGlow.intensity>0)boomGlow.intensity*=.84;if(laserGlow.intensity>0)laserGlow.intensity*=.80;}
+function boomP(pos){
+  var n=0;
+  for(var i=0;i<PM&&n<20;i++){var p=pts[i];if(p.on)continue;p.on=true;p.x=pos.x;p.y=pos.y;p.z=pos.z;var th=Math.random()*Math.PI*2,ph=Math.acos(2*Math.random()-1),s=0.22*(0.4+Math.random()*0.8);p.vx=Math.sin(ph)*Math.cos(th)*s;p.vy=Math.sin(ph)*Math.sin(th)*s;p.vz=Math.cos(ph)*s;p.ml=16+(Math.random()*16|0);p.li=0;var col=new THREE.Color().setHSL(0.04,1,.6+Math.random()*.3);p.r=col.r;p.g=col.g;p.b=col.b;p.sz=.4+Math.random()*.4;n++;}
+  boomGlow.position.copy(pos);boomGlow.intensity=3;boomGlow.color.setHex(0xff4400);
+}
+function tickP(){
+  for(var i=0;i<PM;i++){var p=pts[i];if(!p.on){pp[i*3]=9999;pp[i*3+1]=9999;pp[i*3+2]=9999;ps[i]=0;continue;}p.li++;var t=p.li/p.ml;if(t>=1){p.on=false;ps[i]=0;continue;}p.vx*=.87;p.vy*=.87;p.vz*=.87;p.x+=p.vx;p.y+=p.vy;p.z+=p.vz;pp[i*3]=p.x;pp[i*3+1]=p.y;pp[i*3+2]=p.z;var a=1-t;pc[i*3]=p.r*a;pc[i*3+1]=p.g*a;pc[i*3+2]=p.b*a;ps[i]=p.sz*(1-t*.7);}
+  ptGeo.attributes.position.needsUpdate=true;ptGeo.attributes.color.needsUpdate=true;ptGeo.attributes.size.needsUpdate=true;
+  if(boomGlow.intensity>0)boomGlow.intensity*=.84;if(laserGlow.intensity>0)laserGlow.intensity*=.80;
+}
 
+// Popup
 var popT=0,popD=70;
-function showPop(wp,txt,col){popupEl.textContent=txt;popupEl.style.color=col||'#ffd700';popupEl.style.display='block';popupEl.style.opacity='1';popupEl._wp=wp.clone();popT=popD;}
-function tickPop(){if(popT<=0){popupEl.style.display='none';return;}popT--;var t=popT/popD;popupEl.style.opacity=(t<0.3?t/0.3:1).toString();if(popupEl._wp){var p=popupEl._wp.clone(),u=p.clone().normalize();p.addScaledVector(u,4.5);p.project(camera);var w=canvas.clientWidth,h=canvas.clientHeight;popupEl.style.left=((p.x+1)/2*w-70)+'px';popupEl.style.top=((-p.y+1)/2*h-18)+'px';}}
+function showPop(wp,txt,col){popupEl.textContent=txt;popupEl.style.color=col||'#ffd700';popupEl.style.textShadow='0 0 10px '+(col||'#ff8800')+',0 2px 6px #000';popupEl.style.display='block';popupEl.style.opacity='1';popupEl._wp=wp.clone();popT=popD;}
+function tickPop(){
+  if(popT<=0){popupEl.style.display='none';return;}popT--;
+  var t=popT/popD;popupEl.style.opacity=(t<0.3?t/0.3:1).toString();
+  if(popupEl._wp){var p=popupEl._wp.clone(),u=p.clone().normalize();p.addScaledVector(u,4.5);p.project(camera);var w=canvas.clientWidth,h=420;popupEl.style.left=((p.x+1)/2*w-90)+'px';popupEl.style.top=((-p.y+1)/2*h-24)+'px';}
+}
 
 var RS=Math.PI/8,MD=0.028,CAD=0.165,CAS=0.018,ES=0.012,GD=300,CD=0.85;
 var score,lives,over,started,frame,fc,dead,rotC,pPos,pFwd,coins;
-
-// ★ カメラを高く遠く配置：up方向18 + back方向8
-var CAM_UP=18, CAM_BACK=8;
-var camP=new THREE.Vector3(0,1,0).multiplyScalar(PLANET_R+CAM_UP);
+var camP=new THREE.Vector3(0,1,0).multiplyScalar(PLANET_R+20);
 var camF=new THREE.Vector3(1,0,0);
 var rev=false,deathAnim=false,deathT=0,DDUR=90;
 var keys={};
 
-function setKey(c,v){keys[c]=v;if(v&&!started&&!over){started=true;overlay.style.display='none';}}
+function setKey(code,val){keys[code]=val;if(val&&!started&&!over){started=true;overlay.style.display='none';}}
+
 function bindBtn(id,code){
   var el=document.getElementById(id);if(!el)return;
   el.addEventListener('pointerdown',function(e){e.preventDefault();setKey(code,true);},{passive:false});
@@ -197,11 +215,13 @@ function bindBtn(id,code){
   el.addEventListener('pointerleave',function(){setKey(code,false);});
 }
 bindBtn('bU','ArrowUp');bindBtn('bD','ArrowDown');bindBtn('bL','ArrowLeft');bindBtn('bR','ArrowRight');
+
 var fb=document.getElementById('bFire');
 fb.addEventListener('pointerdown',function(e){e.preventDefault();setKey('Space',true);},{passive:false});
 fb.addEventListener('pointerup',function(e){e.preventDefault();setKey('Space',false);},{passive:false});
 fb.addEventListener('pointercancel',function(){setKey('Space',false);});
 fb.addEventListener('pointerleave',function(){setKey('Space',false);});
+
 document.addEventListener('keydown',function(e){setKey(e.code,true);});
 document.addEventListener('keyup',function(e){keys[e.code]=false;});
 canvas.addEventListener('pointerdown',function(){if(!started&&!over){started=true;overlay.style.display='none';}},{passive:true});
@@ -210,14 +230,20 @@ function rotF(pos,fwd,a){var q=new THREE.Quaternion().setFromAxisAngle(pos,a);fw
 function stepMove(pos,fwd,d){var cD=Math.cos(d),sD=Math.sin(d);var nP=pos.clone().multiplyScalar(cD).addScaledVector(fwd,sD).normalize();var nF=pos.clone().multiplyScalar(-sD).addScaledVector(fwd,cD).normalize();pos.copy(nP);fwd.copy(nF);fwd.addScaledVector(pos,-fwd.dot(pos)).normalize();}
 function tpd(th,ph){return new THREE.Vector3(Math.sin(ph)*Math.cos(th),Math.cos(ph),Math.sin(ph)*Math.sin(th)).normalize();}
 function mTow(dir,tgt,sp){var t=tgt.clone().addScaledVector(dir,-tgt.dot(dir));if(t.length()<0.0001)return;t.normalize();dir.copy(dir.clone().multiplyScalar(Math.cos(sp)).addScaledVector(t,Math.sin(sp)).normalize());}
+
 function iE(e,dir,isSp){var r2=new THREE.Vector3(Math.random()-.5,Math.random()-.5,Math.random()-.5).normalize();e.dir=dir.clone();e.ax=dir.clone().cross(r2).normalize();e.tv=ES*(0.6+Math.random()*0.8)*(Math.random()<0.5?1:-1);e.mv=true;e.st=60+Math.floor(Math.random()*120);e.sp=isSp;e.jt=0;e.bt=Math.random()*Math.PI*2;if(isSp){e.sc=0.35;e.tsc=1.0;e.gs=0.65/GD;}else{e.sc=1.0;e.tsc=1.0;e.gs=0;}e.on=true;e.g.visible=true;e.g._mB.color.setHex(isSp?0xff5555:0xff2222);e.g._mC.color.setHex(isSp?0xff7777:0xff4444);}
 function spawnE(){for(var i=0;i<EP;i++){if(!enemyPool[i].on){var r=new THREE.Vector3(Math.random()-.5,Math.random()-.5,Math.random()-.5).normalize();var cr=pPos.clone().cross(r).normalize();var q2=new THREE.Quaternion().setFromAxisAngle(cr,Math.PI*.5+Math.random()*Math.PI*.5);iE(enemyPool[i],pPos.clone().applyQuaternion(q2).normalize(),false);return;}}}
 function splitE(e){var cnt=0;for(var i=0;i<EP&&cnt<2;i++){if(!enemyPool[i].on){var pr=new THREE.Vector3(Math.random()-.5,Math.random()-.5,Math.random()-.5);pr.addScaledVector(e.dir,-pr.dot(e.dir)).normalize();iE(enemyPool[i],e.dir.clone().addScaledVector(pr,cnt===0?0.08:-0.08).normalize(),true);cnt++;}}}
 
-function showGO(){over=true;overlay.innerHTML='GAME OVER<br><span style="font-size:20px;color:#ffd700;font-weight:700;">'+score+' pt</span><br><button id="rb" style="margin-top:14px;padding:12px 34px;font-size:15px;font-family:monospace;background:rgba(60,140,255,.25);color:#fff;border:1.5px solid rgba(100,180,255,.5);border-radius:10px;cursor:pointer;">▶ リトライ</button>';overlay.style.display='block';overlay.style.pointerEvents='auto';document.getElementById('rb').addEventListener('pointerdown',function(e){e.preventDefault();initGame();started=true;overlay.style.display='none';},{passive:false});}
+function showGO(){
+  over=true;
+  overlay.innerHTML='GAME OVER<br><span style="font-size:16px;">SCORE: '+score+'</span><br><button id="rb" style="margin-top:12px;padding:10px 28px;font-size:14px;font-family:monospace;background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:8px;cursor:pointer;-webkit-tap-highlight-color:transparent;">▶ リトライ</button>';
+  overlay.style.display='block';overlay.style.pointerEvents='auto';
+  document.getElementById('rb').addEventListener('pointerdown',function(e){e.preventDefault();initGame();started=true;overlay.style.display='none';},{passive:false});
+}
 function killPl(){if(dead)return;dead=true;deathAnim=true;deathT=0;for(var i=0;i<EP;i++){if(enemyPool[i].on)enemyPool[i].jt=200;}}
 function fireL(){var l=null;for(var i=0;i<lasers.length;i++){if(!lasers[i].on){l=lasers[i];break;}}if(!l)return;var s=getSurface(pPos);l.orig.copy(s.clone().normalize());l.tang.copy(pFwd.clone());l.tang.addScaledVector(l.orig,-l.tang.dot(l.orig)).normalize();l.angle=0;l.on=true;l.trail=[];laserGlow.intensity=4;laserGlow.position.copy(gcPos(l.orig,l.tang,0,LR));}
-function colCoin(c){c.on=false;c.m.visible=false;score+=10;scoreEl.textContent='SCORE: '+score;showPop(playerGroup.position,'+10 → '+score+'pt','#ffd700');(function(r){setTimeout(function(){r.dir=tpd(Math.random()*Math.PI*2,Math.random()*Math.PI*.6+Math.PI*.2);r.on=true;r.m.visible=true;},1500);})(c);}
+function colCoin(c){c.on=false;c.m.visible=false;score+=10;scoreEl.textContent='SCORE: '+score;showPop(playerGroup.position,'+10  TOTAL:'+score,'#ffd700');(function(r){setTimeout(function(){r.dir=tpd(Math.random()*Math.PI*2,Math.random()*Math.PI*.6+Math.PI*.2);r.on=true;r.m.visible=true;},1500);})(c);}
 
 function initGame(){
   score=0;lives=3;over=false;started=false;frame=0;fc=0;dead=false;deathAnim=false;deathT=0;walkT=0;rotC=0;popT=0;rev=false;keys={};
@@ -232,7 +258,7 @@ function initGame(){
   lasers.forEach(function(l){l.on=false;l.trail=[];l.dots.forEach(function(d){d.visible=false;});});
   pts.forEach(function(p){p.on=false;});
   camF.copy(pFwd);
-  overlay.innerHTML='↑前進 ↓後退 ←→回転<br>FIREでレーザー発射<br><span style="font-size:11px;color:#88aaff;font-weight:400;">Tap to start</span>';
+  overlay.innerHTML='↑↓ 前進/後退　← → 回転　SPACE レーザー<br><span style="font-size:11px;color:#aaa">画面か下のボタンでスタート</span>';
   overlay.style.display='block';overlay.style.pointerEvents='none';
 }
 initGame();
@@ -266,10 +292,7 @@ function update(){
     var dt=deathT/DDUR,op=dt<0.4?1:Math.max(0,1-(dt-0.4)/0.6);
     if(astro._mats)astro._mats.forEach(function(m){m.opacity=op;});
     if(deathT>=DDUR){playerGroup.visible=false;deathAnim=false;setTimeout(showGO,400);}
-    camera.position.copy(camP);
-    var u0=playerGroup.position.clone().normalize();
-    camera.up.copy(u0);
-    camera.lookAt(playerGroup.position.clone().addScaledVector(u0,-4));
+    camera.position.copy(camP);var u0=playerGroup.position.clone().normalize();camera.up.copy(u0);camera.lookAt(playerGroup.position.clone().addScaledVector(u0,-1.5));
     updEn();return;
   }
   if(dead)return;
@@ -306,8 +329,8 @@ function update(){
       if(hp.distanceTo(e.g.position)<1.0*e.sc){
         boomP(e.g.position.clone());var hp2=e.g.position.clone(),wasSp=e.sp;
         e.on=false;e.g.visible=false;e.g.scale.setScalar(1);l.on=false;l.dots.forEach(function(d){d.visible=false;});hE=true;
-        if(!wasSp){score+=25;scoreEl.textContent='SCORE: '+score;showPop(hp2,'+25 → '+score+'pt','#ff8844');splitE(e);}
-        else{score+=50;scoreEl.textContent='SCORE: '+score;showPop(hp2,'+50 → '+score+'pt','#ffcc44');}
+        if(!wasSp){score+=25;scoreEl.textContent='SCORE: '+score;showPop(hp2,'+25 TOTAL:'+score,'#ff8844');splitE(e);}
+        else{score+=50;scoreEl.textContent='SCORE: '+score;showPop(hp2,'+50 TOTAL:'+score,'#ffcc44');}
       }
     }
     if(hE)continue;
@@ -327,24 +350,18 @@ function update(){
   if(frame%140===0)spawnE();
   updEn();
 
-  // ★ カメラ: up方向18 + back方向8 → 球体の大部分が見える
-  camF.lerp(pFwd,rev?0:0.07).normalize();
-  var camBack=camF.clone().negate();
-  var desiredCam=playerGroup.position.clone()
-    .addScaledVector(up, CAM_UP)
-    .addScaledVector(camBack, CAM_BACK);
-  camP.lerp(desiredCam, rev?0:0.06);
-  camera.position.copy(camP);
-  camera.up.copy(up);
-  // ★ 注視点: プレイヤーより少し惑星中心寄りを見る → 球体が画面に収まる
-  camera.lookAt(playerGroup.position.clone().addScaledVector(up,-4));
+  camF.lerp(pFwd,rev?0:0.08).normalize();
+  var dc=playerGroup.position.clone().addScaledVector(up,9).addScaledVector(camF.clone().negate(),6);
+  camP.lerp(dc,rev?0:0.07);
+  camera.position.copy(camP);camera.up.copy(up);
+  camera.lookAt(playerGroup.position.clone().addScaledVector(up,-1.5));
 }
 
 function loop(){update();renderer.render(scene,camera);requestAnimationFrame(loop);}
 loop();
 
 }catch(err){
-  document.getElementById('overlay').innerHTML='Error: '+err.message+'<br><small>'+(err.stack||'').substring(0,120)+'</small>';
+  document.getElementById('overlay').innerHTML='Error: '+err.message+'<br><small>'+(err.stack||'').substring(0,150)+'</small>';
   document.getElementById('overlay').style.display='block';
   document.getElementById('overlay').style.pointerEvents='auto';
 }})();
