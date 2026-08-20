@@ -292,6 +292,87 @@ header { position:relative; z-index:1; overflow:hidden; }
   border-color:rgba(29,233,182,.5);
   background:rgba(29,233,182,.07);
 }
+.labs-panel {
+  width:min(980px,calc(100% - 40px));
+  margin:18px auto 24px;
+  padding:14px;
+  border:1px solid rgba(255,245,240,.1);
+  border-top:2px solid rgba(29,233,182,.42);
+  border-bottom:2px solid rgba(255,64,129,.32);
+  border-radius:6px;
+  background:
+    linear-gradient(135deg,rgba(29,233,182,.08),rgba(255,64,129,.055) 52%,rgba(255,202,40,.065)),
+    rgba(7,0,18,.76);
+  box-shadow:0 0 24px rgba(29,233,182,.08), inset 0 0 18px rgba(255,64,129,.04);
+}
+.labs-head {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:10px;
+}
+.labs-title {
+  font-family:'Press Start 2P',monospace;
+  font-size:.52rem;
+  color:var(--neon-teal);
+  letter-spacing:.18em;
+  text-shadow:0 0 12px rgba(29,233,182,.7);
+}
+.labs-caption {
+  font-family:'VT323',monospace;
+  font-size:1rem;
+  color:rgba(255,245,240,.45);
+  letter-spacing:.08em;
+}
+.labs-grid {
+  display:grid;
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  gap:8px;
+}
+.lab-tile {
+  min-height:82px;
+  padding:10px;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  gap:8px;
+  color:var(--warm-white);
+  text-decoration:none;
+  border:1px solid color-mix(in srgb,var(--lab-color) 55%,transparent);
+  border-radius:4px;
+  background:
+    linear-gradient(180deg,color-mix(in srgb,var(--lab-color) 12%,transparent),rgba(255,255,255,.02)),
+    rgba(3,0,12,.72);
+  box-shadow:0 0 16px color-mix(in srgb,var(--lab-color) 18%,transparent), inset 0 0 14px rgba(255,255,255,.025);
+}
+.lab-tile:hover {
+  transform:translateY(-1px);
+  box-shadow:0 0 22px color-mix(in srgb,var(--lab-color) 32%,transparent), inset 0 0 18px rgba(255,255,255,.04);
+}
+.lab-tile.is-soon {
+  opacity:.72;
+}
+.lab-label {
+  font-family:'Press Start 2P',monospace;
+  font-size:.43rem;
+  line-height:1.45;
+  color:var(--lab-color);
+  letter-spacing:.06em;
+  text-shadow:0 0 10px color-mix(in srgb,var(--lab-color) 72%,transparent);
+}
+.lab-desc {
+  font-family:'DotGothic16','VT323',monospace;
+  font-size:.76rem;
+  line-height:1.45;
+  color:rgba(255,245,240,.62);
+}
+.lab-status {
+  font-family:'VT323',monospace;
+  font-size:.88rem;
+  letter-spacing:.12em;
+  color:rgba(255,202,40,.72);
+}
 
 /* ════════════════════════════════════════
    MAIN / SELECT STAGE
@@ -937,6 +1018,12 @@ footer p { font-family:'VT323',monospace; font-size:1rem; color:rgba(255,245,240
   .sub-avatar { order:0; margin:0 auto; width:96px; height:96px; }
   .creator-subpanel > div:not(.sub-avatar) { min-width:100%; }
   .creator-subpanel::before { display:none; }
+  .labs-panel { width:calc(100% - 28px); padding:12px; }
+  .labs-head { align-items:flex-start; flex-direction:column; gap:4px; }
+  .labs-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .lab-tile { min-height:78px; }
+  .lab-label { font-size:.4rem; }
+  .lab-desc { font-size:.72rem; }
 }
 
 /* ════════════════════════════════════════
@@ -1303,6 +1390,40 @@ footer p { font-family:'VT323',monospace; font-size:1rem; color:rgba(255,245,240
     </div>
   </div>
 
+  <nav class="labs-panel" aria-label="NOMMY LABS">
+    <div class="labs-head">
+      <div class="labs-title">// NOMMY LABS</div>
+      <div class="labs-caption">GAMEから、PHOTO・DESIGN・AIへ広がる実験場。</div>
+    </div>
+    <div class="labs-grid">
+      <a class="lab-tile" href="#works" style="--lab-color:#ff6b6b">
+        <span class="lab-label">GAME LAB</span>
+        <span class="lab-desc">遊べるブラウザゲーム置き場</span>
+        <span class="lab-status">OPEN</span>
+      </a>
+      <div class="lab-tile is-soon" style="--lab-color:#74b9ff">
+        <span class="lab-label">PHOTO</span>
+        <span class="lab-desc">写真作品、日々の視点</span>
+        <span class="lab-status">COMING SOON</span>
+      </div>
+      <div class="lab-tile is-soon" style="--lab-color:#fd79a8">
+        <span class="lab-label">DESIGN</span>
+        <span class="lab-desc">画像・ロゴ・ビジュアル実験</span>
+        <span class="lab-status">COMING SOON</span>
+      </div>
+      <div class="lab-tile is-soon" style="--lab-color:#1de9b6">
+        <span class="lab-label">AI LAB</span>
+        <span class="lab-desc">AIと作る試作、研究、メモ</span>
+        <span class="lab-status">COMING SOON</span>
+      </div>
+      <a class="lab-tile" href="https://note.com/nommy_465" target="_blank" rel="noopener noreferrer" style="--lab-color:#fdcb6e">
+        <span class="lab-label">NOTE</span>
+        <span class="lab-desc">制作の裏側、これから少しずつ</span>
+        <span class="lab-status">READ</span>
+      </a>
+    </div>
+  </nav>
+
   <!-- Ticker -->
   <div class="ticker-wrap">
     <span class="ticker">
@@ -1363,11 +1484,17 @@ footer p { font-family:'VT323',monospace; font-size:1rem; color:rgba(255,245,240
         <span class="stage-sign-title">じゃんけん街道</span>
         <span class="stage-sign-tag">JANKEN</span>
       </button>
-      <button class="stage-sign active" type="button" data-stage="6" style="--sign-color:#4be3ff">
+      <button class="stage-sign" type="button" data-stage="6" style="--sign-color:#4be3ff">
         <span class="stage-sign-img"><img src="in-the-space.png" alt="THE WEAKEST ASTRONAUT"></span>
         <span class="stage-sign-num">STAGE 07</span>
         <span class="stage-sign-title">WEAKEST ASTRONAUT</span>
         <span class="stage-sign-tag">SPACE</span>
+      </button>
+      <button class="stage-sign active" type="button" data-stage="7" style="--sign-color:#ff8e53">
+        <span class="stage-sign-img"><img src="beach-volley.png" alt="BEACH VOLLEY GIRLS"></span>
+        <span class="stage-sign-num">STAGE 08</span>
+        <span class="stage-sign-title">BEACH VOLLEY GIRLS</span>
+        <span class="stage-sign-tag">SPORTS</span>
       </button>
       </div>
     </div>
@@ -1856,7 +1983,7 @@ footer p { font-family:'VT323',monospace; font-size:1rem; color:rgba(255,245,240
   </div><!-- /game-card 06 -->
 
   <!-- ══════════ GAME 07: THE WEAKEST ASTRONAUT ══════════ -->
-  <div class="game-card is-selected">
+  <div class="game-card">
     <div class="gc-stripe" style="background:linear-gradient(90deg,#4be3ff,#ff5ca8,#7c5cff)"></div>
     <div class="gc-header" style="background:linear-gradient(135deg,rgba(75,227,255,.06) 0%,transparent 70%)">
       <div class="gc-header-meta">
@@ -1936,6 +2063,86 @@ footer p { font-family:'VT323',monospace; font-size:1rem; color:rgba(255,245,240
       </div><!-- /gc-detail -->
     </div><!-- /gc-body -->
   </div><!-- /game-card 07 -->
+
+  <!-- ══════════ GAME 08: BEACH VOLLEY GIRLS ══════════ -->
+  <div class="game-card is-selected">
+    <div class="gc-stripe" style="background:linear-gradient(90deg,#ff8e53,#74b9ff,#fdcb6e)"></div>
+    <div class="gc-header" style="background:linear-gradient(135deg,rgba(255,142,83,.07) 0%,transparent 70%)">
+      <div class="gc-header-meta">
+        <div class="gc-num">STAGE — 08</div>
+        <div class="gc-title-row">
+          <span class="gc-emoji">🏐</span>
+          <span class="gc-title" style="color:#ff8e53;text-shadow:0 0 20px rgba(255,142,83,.6)">BEACH VOLLEY GIRLS</span>
+        </div>
+        <div class="gc-tags">
+          <span class="gc-tag" style="border:1px solid rgba(255,142,83,.5);color:#ff8e53">SPORTS</span>
+          <span class="gc-tag" style="border:1px solid rgba(116,185,255,.5);color:#74b9ff">BEACH</span>
+          <span class="gc-tag" style="border:1px solid rgba(253,203,110,.5);color:#fdcb6e">ACTION</span>
+        </div>
+      </div>
+      <a class="play-btn" href="beach-volley.html" target="_blank" style="background:#ff8e53;box-shadow:0 0 20px rgba(255,142,83,.5),0 4px 12px rgba(0,0,0,.4)">PLAY NOW</a>
+    </div>
+    <div class="gc-body">
+      <div class="gc-screenshot">
+        <img src="beach-volley.png" alt="BEACH VOLLEY GIRLS screenshot">
+      </div>
+      <div class="gc-detail">
+    <div class="gc-controls">
+      <span class="ctrl-label">CONTROLS</span>
+      <div class="ctrl-item">
+        <kbd style="background:rgba(255,142,83,.18);border-color:rgba(255,142,83,.5);color:#ff8e53">↑</kbd>
+        <kbd style="background:rgba(255,142,83,.18);border-color:rgba(255,142,83,.5);color:#ff8e53">↓</kbd>
+        <kbd style="background:rgba(255,142,83,.18);border-color:rgba(255,142,83,.5);color:#ff8e53">←</kbd>
+        <kbd style="background:rgba(255,142,83,.18);border-color:rgba(255,142,83,.5);color:#ff8e53">→</kbd>
+        <span class="ctrl-desc" style="color:#ff8e53">移動</span>
+      </div>
+      <div class="ctrl-item">
+        <kbd style="background:rgba(116,185,255,.18);border-color:rgba(116,185,255,.5);color:#74b9ff">Z</kbd>
+        <span class="ctrl-desc" style="color:#74b9ff">強打</span>
+      </div>
+      <div class="ctrl-item">
+        <kbd style="background:rgba(253,203,110,.18);border-color:rgba(253,203,110,.5);color:#fdcb6e">X</kbd>
+        <span class="ctrl-desc" style="color:#fdcb6e">軽打</span>
+      </div>
+    </div>
+
+    <!-- Accordion -->
+    <div class="accordion-wrap">
+      <div class="accordion-item">
+        <button class="accordion-btn" onclick="toggleAccordion(this)" aria-expanded="false" style="color:#ff8e53">
+          <span>▸ ゲーム内容</span>
+          <span class="accordion-arrow">▼</span>
+        </button>
+        <div class="accordion-body">
+          <div class="accordion-inner">
+            <p class="game-desc-inner">
+              南国ビーチを舞台にした、リアルタイム操作のビーチバレーゲーム。プレイヤーを動かしてボールに触れ、レシーブ、トス、アタックをつなげて得点を狙う。Zで強打、Xで軽打。シンプルな操作ながら、ボールの位置取りとタイミングが勝負を分ける。
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="accordion-item">
+        <button class="accordion-btn" onclick="toggleAccordion(this)" aria-expanded="false" style="color:#ff8e53">
+          <span>▸ 作者の言葉</span>
+          <span class="accordion-arrow">▼</span>
+        </button>
+        <div class="accordion-body">
+          <div class="accordion-inner">
+            <div class="dialog-box" style="background:rgba(18,7,0,.85);border:2px solid #ff8e53;box-shadow:0 0 20px rgba(255,142,83,.1)">
+              <div class="dialog-speaker" style="color:#ff8e53">▷ NOMMY :</div>
+              <p class="dialog-text">
+                スポーツゲームは、ルールを本物に近づけようとすると急に難しくなる。今回はビーチバレーの雰囲気を残しつつ、まずは「動いて当てる」気持ちよさを優先した。<br><br>
+                レシーブ、トス、アタックがきれいにつながると、ちょっとそれっぽい。夏のゲームとして、明るく軽く遊べるものを目指した。
+              </p>
+              <span class="dialog-cursor" style="background:#ff8e53"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+      </div><!-- /gc-detail -->
+    </div><!-- /gc-body -->
+  </div><!-- /game-card 08 -->
 
   <p class="lab-philosophy">AIと一緒に、もう一度ゲームをつくる。<span>OLD CREATOR</span>の実験は続く。</p>
   <div class="sec-head"><span>// COMING SOON</span></div>
