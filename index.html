@@ -327,7 +327,7 @@ header { position:relative; z-index:1; overflow:hidden; }
 }
 .labs-grid {
   display:grid;
-  grid-template-columns:repeat(5,minmax(0,1fr));
+  grid-template-columns:repeat(4,minmax(0,1fr));
   gap:8px;
 }
 .lab-tile {
@@ -428,7 +428,7 @@ main {
   overflow-x:auto;
   gap:10px;
   padding:0 34px 8px;
-  scroll-snap-type:x proximity;
+  scroll-snap-type:none;
   -webkit-overflow-scrolling:touch;
 }
 .stage-scroll-wrap {
@@ -543,6 +543,19 @@ main {
 .stage-select-mode .game-card.is-selected .play-btn {
   font-size:.84rem;
   padding:14px 22px;
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb,var(--selected-color,#ff8e53) 74%,#ffffff 26%) 0%,
+      var(--selected-color,#ff8e53) 46%,
+      color-mix(in srgb,var(--selected-color,#ff8e53) 64%,#000000 36%) 100%
+    ) !important;
+  box-shadow:
+    0 0 18px color-mix(in srgb,var(--selected-color,#ff8e53) 72%,transparent),
+    0 0 34px color-mix(in srgb,var(--selected-color,#ff8e53) 36%,transparent),
+    0 5px 14px rgba(0,0,0,.48) !important;
+  text-shadow:0 1px 4px rgba(0,0,0,.34);
+  animation:selectedPlayPulse 1.8s ease-in-out infinite, selectedPlayText 1.8s ease-in-out infinite;
 }
 
 /* ════════════════════════════════════════
@@ -633,6 +646,26 @@ main {
 .pb-02 { background:var(--neon-teal);   box-shadow:0 0 20px rgba(29,233,182,.5),0 4px 12px rgba(0,0,0,.4); }
 .pb-03 { background:var(--sky-gold);    box-shadow:0 0 20px rgba(255,202,40,.5),0 4px 12px rgba(0,0,0,.4); }
 .play-btn:hover { transform:translateY(-3px) scale(1.03); filter:brightness(1.12); }
+@keyframes selectedPlayPulse {
+  0%,100% {
+    filter:brightness(.96) saturate(1.05);
+    transform:translateY(0) scale(1);
+  }
+  50% {
+    filter:brightness(1.35) saturate(1.35);
+    transform:translateY(-1px) scale(1.035);
+  }
+}
+@keyframes selectedPlayText {
+  0%,100% {
+    color:#000;
+    text-shadow:0 1px 4px rgba(255,255,255,.22);
+  }
+  50% {
+    color:#fff;
+    text-shadow:0 1px 6px rgba(0,0,0,.75), 0 0 10px rgba(255,255,255,.42);
+  }
+}
 
 /* gc-preview → replaced by gc-screenshot */
 
@@ -1416,11 +1449,6 @@ footer p { font-family:'VT323',monospace; font-size:1rem; color:rgba(255,245,240
         <span class="lab-desc">AIと作る試作、研究、メモ</span>
         <span class="lab-status">COMING SOON</span>
       </div>
-      <a class="lab-tile" href="https://note.com/nommy_465" target="_blank" rel="noopener noreferrer" style="--lab-color:#fdcb6e">
-        <span class="lab-label">NOTE</span>
-        <span class="lab-desc">制作の裏側、これから少しずつ</span>
-        <span class="lab-status">READ</span>
-      </a>
     </div>
   </nav>
 
@@ -2291,7 +2319,12 @@ function toggleAccordion(btn) {
 
   const cards = Array.from(works.querySelectorAll('.game-card'));
   const signs = Array.from(arcade.querySelectorAll('.stage-sign'));
+  const stageGrid = arcade.querySelector('.stage-grid');
   const detailLabel = works.querySelector('.stage-detail-label');
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let autoScrollPausedUntil = 0;
+  let autoScrollDirection = 1;
+  let autoScrollRaf = null;
 
   function closeCardAccordions(card) {
     card.querySelectorAll('.accordion-btn').forEach(btn => {
@@ -2313,6 +2346,10 @@ function toggleAccordion(btn) {
       sign.classList.toggle('active', sign.dataset.stage === String(index));
     });
 
+    const activeSign = signs.find(sign => sign.dataset.stage === String(index));
+    const selectedColor = activeSign ? activeSign.style.getPropertyValue('--sign-color') : '';
+    if (selectedColor) card.style.setProperty('--selected-color', selectedColor);
+
     card.classList.add('is-selected');
     if (detailLabel) detailLabel.textContent = 'NOW SELECTED';
 
@@ -2326,6 +2363,37 @@ function toggleAccordion(btn) {
       selectStage(Number(sign.dataset.stage), true);
     });
   });
+
+  function runStageAutoScroll() {
+    if (!stageGrid || prefersReducedMotion) return;
+
+    const maxScroll = stageGrid.scrollWidth - stageGrid.clientWidth;
+    if (maxScroll <= 0) return;
+
+    if (Date.now() > autoScrollPausedUntil) {
+      stageGrid.scrollLeft += autoScrollDirection * 0.45;
+
+      if (stageGrid.scrollLeft >= maxScroll - 1) {
+        autoScrollDirection = -1;
+      } else if (stageGrid.scrollLeft <= 1) {
+        autoScrollDirection = 1;
+      }
+    }
+
+    autoScrollRaf = requestAnimationFrame(runStageAutoScroll);
+  }
+
+  if (stageGrid && !prefersReducedMotion) {
+    ['pointerdown','touchstart','wheel','focusin'].forEach(type => {
+      stageGrid.addEventListener(type, () => {
+        autoScrollPausedUntil = Date.now() + 3500;
+      }, { passive:true });
+    });
+    window.addEventListener('beforeunload', () => {
+      if (autoScrollRaf) cancelAnimationFrame(autoScrollRaf);
+    });
+    runStageAutoScroll();
+  }
 
   const initial = signs.find(sign => sign.classList.contains('active') && sign.dataset.stage !== 'soon');
   if (initial) selectStage(Number(initial.dataset.stage), false);
