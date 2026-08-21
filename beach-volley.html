@@ -31,9 +31,10 @@
   .card canvas{ width:56px; height:64px; image-rendering:pixelated; }
   .card .name{ font-weight:800; margin-top:2px; }
   .card .stat{ opacity:.75; font-size:9px; }
-  #hud{ position:absolute; top:10px; left:0; right:0; display:flex; justify-content:space-between; padding:0 14px;
-    font-family:'Baloo 2',sans-serif; font-weight:700; font-size:15px; text-shadow:0 2px 4px rgba(0,0,0,.5); pointer-events:none; }
-  #hud .set{ font-size:11px; opacity:.85; display:block; text-align:center; }
+  #hud{ position:absolute; top:14px; left:0; right:0; display:flex; justify-content:space-between; align-items:center; padding:0 30px;
+    font-family:'Baloo 2',sans-serif; font-weight:700; text-shadow:0 2px 4px rgba(0,0,0,.5); pointer-events:none; }
+  #hud .score{ font-size:44px; font-weight:800; line-height:1; }
+  #hud .setInfo{ font-size:12px; opacity:.85; text-align:center; }
   #msg{ position:absolute; top:44%; left:0; right:0; text-align:center; font-family:'Baloo 2',sans-serif; font-weight:800; font-size:24px;
     text-shadow:0 3px 10px rgba(0,0,0,.6); pointer-events:none; opacity:0; transition:opacity .15s; }
   #msg.show{ opacity:1; }
@@ -57,12 +58,12 @@
   <div id="stage">
     <canvas id="c" width="400" height="700"></canvas>
     <div id="hud" class="hidden">
-      <div><span id="teamAName">TEAM A</span><span class="set" id="scoreA">0</span></div>
-      <div style="text-align:center;"><span class="set" id="setInfo">SET 1</span></div>
-      <div style="text-align:right;"><span id="teamBName">TEAM B</span><span class="set" id="scoreB">0</span></div>
+      <div class="score" id="scoreA">0</div>
+      <div class="setInfo" id="setInfo">6点先取</div>
+      <div class="score" id="scoreB">0</div>
     </div>
     <div id="msg"></div>
-    <div id="controls-hint" class="hidden">レシーブ→トス→アタック、すべて操作キャラを動かして当てる。Z=強打 X=軽打</div>
+    <div id="controls-hint" class="hidden">レシーブ→トス→アタック、すべて操作キャラを動かして当てる</div>
 
     <div id="touchpad" class="hidden">
       <div class="dpad">
@@ -70,10 +71,6 @@
         <div class="dbtn" id="d-down">&darr;</div>
         <div class="dbtn" id="d-left">&larr;</div>
         <div class="dbtn" id="d-right">&rarr;</div>
-      </div>
-      <div class="actions">
-        <div class="abtn" id="btn-x">軽打</div>
-        <div class="abtn" id="btn-z">強打</div>
       </div>
     </div>
 
@@ -144,10 +141,10 @@ const ROSTER = [
   {id:'p4', name:'モモ', tag:'レシーブ特化', power:0.9, receive:1.3, speed:1.05},
 ];
 const CPU_ROSTER = [
-  {id:'e1', name:'E1', power:1.05, receive:1.0, speed:1.0},
-  {id:'e2', name:'E2', power:1.1,  receive:1.0, speed:0.95},
-  {id:'e3', name:'E3', power:1.0,  receive:1.05,speed:1.05},
-  {id:'e4', name:'E4', power:1.0,  receive:1.1, speed:1.0},
+  {id:'e1', name:'E1', power:1.15, receive:1.1, speed:1.1},
+  {id:'e2', name:'E2', power:1.2,  receive:1.05,speed:1.05},
+  {id:'e3', name:'E3', power:1.1,  receive:1.15,speed:1.15},
+  {id:'e4', name:'E4', power:1.1,  receive:1.2, speed:1.1},
 ];
 
 // ---------- Canvas / court geometry ----------
@@ -196,9 +193,8 @@ let players; // 4 Pl objects
 let idxA=0, idxB=0; // which teammate is currently "active" (controlled / primary)
 let ball;
 let state='title';
-let score={A:0,B:0}, sets={A:0,B:0};
-const SET_TARGET=[21,21,15];
-let curSet=0;
+let score={A:0,B:0};
+const MATCH_TARGET=6;
 let keys={};
 let msgTimer=0;
 let ballAnimT=0;
@@ -261,22 +257,10 @@ function awardPoint(team){
   players.filter(p=>p.team===team).forEach(p=>setTempPose(p,'cheer',1.0));
   players.filter(p=>p.team===loser).forEach(p=>setTempPose(p,'sad',1.0));
 
-  const target=SET_TARGET[curSet];
-  const won=(score.A>=target && score.A-score.B>=2)?'A':(score.B>=target && score.B-score.A>=2)?'B':null;
-  if(won){
-    sets[won]++;
-    document.getElementById('setInfo').textContent=`SET ${curSet+1} 終了 ${sets.A}-${sets.B}`;
-    if(sets[won]>=2){ endMatch(won); return; }
-    curSet++;
-    score={A:0,B:0};
-    document.getElementById('scoreA').textContent=0;
-    document.getElementById('scoreB').textContent=0;
-    showMsg(`SET ${curSet+1} スタート`,1400);
-    setTimeout(()=>resetRally(team==='A'?'B':'A'), 1100);
-  } else {
-    document.getElementById('setInfo').textContent=`SET ${curSet+1}`;
-    setTimeout(()=>resetRally(team==='A'?'B':'A'), 700);
-  }
+  const target = MATCH_TARGET;
+  const won = (score.A>=target && score.A-score.B>=2) ? 'A' : (score.B>=target && score.B-score.A>=2) ? 'B' : null;
+  if(won){ endMatch(won); return; }
+  setTimeout(()=>resetRally(team==='A'?'B':'A'), 700);
 }
 function endMatch(winner){
   state='end';
@@ -284,7 +268,7 @@ function endMatch(winner){
   document.getElementById('controls-hint').classList.add('hidden');
   document.getElementById('touchpad').classList.add('hidden');
   document.getElementById('endTitle').textContent = winner==='A'?'WIN!':'LOSE...';
-  document.getElementById('endSub').textContent = `${sets.A} - ${sets.B} でセット終了`;
+  document.getElementById('endSub').textContent = `${score.A} - ${score.B}`;
   document.getElementById('screen-end').classList.remove('hidden');
 }
 
@@ -309,8 +293,6 @@ bindHold(document.getElementById('d-up'),'ArrowUp');
 bindHold(document.getElementById('d-down'),'ArrowDown');
 bindHold(document.getElementById('d-left'),'ArrowLeft');
 bindHold(document.getElementById('d-right'),'ArrowRight');
-bindHold(document.getElementById('btn-z'),'z');
-bindHold(document.getElementById('btn-x'),'x');
 
 // ---------- Touch-drag directly on the court (mobile) ----------
 let touchDrag = {active:false, lastX:0, lastY:0};
@@ -367,9 +349,7 @@ function contactHit(team, hitter){
 
   let speed = Math.min(MAX_SPEED, ball.speed + (finalTouch?SPEED_STEP:6));
   if(finalTouch){
-    if(team==='A' && keys['z']) speed = Math.min(MAX_SPEED, speed*1.3);
-    if(team==='A' && keys['x']) speed = Math.max(BASE_SPEED*0.75, speed*0.72);
-    if(team==='B' && Math.random()<0.35) speed = Math.min(MAX_SPEED, speed*1.3);
+    if(team==='B' && Math.random()<0.55) speed = Math.min(MAX_SPEED, speed*1.3);
     speed = clamp(speed*positionSpeedFactor(team,hitter), BASE_SPEED*0.5, MAX_SPEED);
   } else {
     speed = Math.max(BASE_SPEED*0.55, speed*0.62); // gentler in-team pass
@@ -426,11 +406,11 @@ function update(dt){
 
   // CPU movement: track ball when on their side, else return to guard position
   if(ball.y < NET_Y){
-    driftFollow(bAct, clamp(ball.x, COURT.x+18, COURT.x+COURT.w-18), clamp(ball.y+6, COURT.y+8, NET_Y-10), dt, 175*bAct.ch.speed);
+    driftFollow(bAct, clamp(ball.x, COURT.x+18, COURT.x+COURT.w-18), clamp(ball.y+6, COURT.y+8, NET_Y-10), dt, 280*bAct.ch.speed);
   } else {
-    driftFollow(bAct, COURT.x+COURT.w*0.5, COURT.y+COURT.h*0.22, dt, 120);
+    driftFollow(bAct, COURT.x+COURT.w*0.5, COURT.y+COURT.h*0.22, dt, 160);
   }
-  driftFollow(bOther, COURT.x+COURT.w*0.5 + (bAct.x < COURT.x+COURT.w*0.5 ? COURT.w*0.22 : -COURT.w*0.22), COURT.y+COURT.h*0.10, dt, 90);
+  driftFollow(bOther, COURT.x+COURT.w*0.5 + (bAct.x < COURT.x+COURT.w*0.5 ? COURT.w*0.22 : -COURT.w*0.22), COURT.y+COURT.h*0.10, dt, 140);
 
   // hard safety clamp: nobody may ever cross to the other side of the net
   players.forEach(p=>{
@@ -505,12 +485,10 @@ function startMatch(){
   document.getElementById('hud').classList.remove('hidden');
   document.getElementById('controls-hint').classList.remove('hidden');
   document.getElementById('touchpad').classList.remove('hidden');
-  document.getElementById('teamAName').textContent = teamA.map(c=>c.name).join('&');
-  document.getElementById('teamBName').textContent = teamB.map(c=>c.name).join('&');
-  score={A:0,B:0}; sets={A:0,B:0}; curSet=0;
+  score={A:0,B:0};
   document.getElementById('scoreA').textContent=0;
   document.getElementById('scoreB').textContent=0;
-  document.getElementById('setInfo').textContent='SET 1';
+  document.getElementById('setInfo').textContent=`6点先取`;
   state='play';
   resetRally('A');
 }
