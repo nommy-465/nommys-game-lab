@@ -1531,7 +1531,7 @@ function updateCamera(dt) {
     var diff = targetYaw - camYaw;
     while (diff >  Math.PI) diff -= Math.PI * 2;
     while (diff < -Math.PI) diff += Math.PI * 2;
-    camYaw += diff * Math.min(1, dt * 4.5);
+    camYaw += diff * Math.min(1, dt * 2.5);
   }
   var desiredX = pos.x + Math.sin(camYaw) * camDist;
   var desiredY = pos.y + camHeight + spd * 0.05;
